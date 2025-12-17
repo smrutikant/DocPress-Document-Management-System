@@ -452,6 +452,7 @@
       </form>
 
       <!-- OAuth Section -->
+      <% if (process.env.OAUTH_ENABLED === 'true') { %>
       <div class="oauth-section">
         <div class="oauth-label">Or continue with</div>
         <div class="oauth-buttons">
@@ -465,6 +466,7 @@
           </a>
         </div>
       </div>
+      <% } %>
 
       <div class="auth-footer">
         Already have an account? <a href="/login">Sign in here</a>

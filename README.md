@@ -31,7 +31,7 @@ A comprehensive documentation platform similar to GitHub Docs, built with Node.j
   - MongoDB (content storage, revisions)
 - **Storage**: Local filesystem or AWS S3
 - **Editor**: Quill rich text editor
-- **Authentication**: Express session
+- **Authentication**: Express session, OAuth (Google) - optional
 
 ## Project Structure
 
@@ -186,6 +186,24 @@ The application supports two storage options for uploaded files:
    - Files are stored in an S3 bucket
    - Set `STORAGE_TYPE=s3` in `.env`
    - Configure AWS credentials in `.env`
+
+## Authentication Options
+
+### Local Authentication (Always Available)
+- Username/email and password registration
+- Session-based authentication
+
+### OAuth Authentication (Optional)
+- **Google Sign-In** - Enable by setting `OAUTH_ENABLED=true` in `.env`
+- Requires Google OAuth credentials from Google Cloud Console
+- Users can sign up/login with their Google account
+- Profile pictures automatically synced from Google
+
+To enable OAuth:
+1. Set `OAUTH_ENABLED=true` in `.env`
+2. Configure Google OAuth credentials (see `.env.example`)
+3. Run `npm run verify-oauth` to verify configuration
+4. Restart the server
 
 ## User Roles
 
