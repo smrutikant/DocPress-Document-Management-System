@@ -1,0 +1,49 @@
+<aside class="user-sidebar">
+  <div class="sidebar-header">
+    <a href="/" class="logo">
+      <img src="/images/logo.png" alt="DocPress Logo" style="height: 60px;">
+    </a>
+  </div>
+
+  <h3>Navigation</h3>
+  <ul>
+    <li><a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">
+      <span class="sidebar-icon">🏠</span>
+      Home
+    </a></li>
+    <li><a href="/browse" class="<%= currentPath === '/browse' ? 'active' : '' %>">
+      <span class="sidebar-icon">📚</span>
+      Browse
+    </a></li>
+    <li><a href="/search" class="<%= currentPath === '/search' ? 'active' : '' %>">
+      <span class="sidebar-icon">🔍</span>
+      Search
+    </a></li>
+  </ul>
+
+  <% if (user) { %>
+    <h3>Account</h3>
+    <ul>
+      <li><a href="/profile" class="<%= currentPath === '/profile' ? 'active' : '' %>">
+        <span class="sidebar-icon">👤</span>
+        My Profile
+      </a></li>
+      <li><a href="/logout">
+        <span class="sidebar-icon">🚪</span>
+        Logout
+      </a></li>
+    </ul>
+  <% } else { %>
+    <h3>Account</h3>
+    <ul>
+      <li><a href="/login" class="<%= currentPath === '/login' ? 'active' : '' %>">
+        <span class="sidebar-icon">🔐</span>
+        Login
+      </a></li>
+      <li><a href="/register" class="<%= currentPath === '/register' ? 'active' : '' %>">
+        <span class="sidebar-icon">📝</span>
+        Register
+      </a></li>
+    </ul>
+  <% } %>
+</aside>

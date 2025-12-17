@@ -1,0 +1,143 @@
+<%- include('../partials/header') %>
+
+<style>
+/* Animated SVG Background */
+.svg-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.08;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.floating-shape {
+  position: absolute;
+  animation: float 20s infinite ease-in-out;
+}
+
+.shape-1 {
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  top: 60%;
+  left: 70%;
+  animation-delay: 5s;
+}
+
+.shape-3 {
+  top: 30%;
+  right: 10%;
+  animation-delay: 10s;
+}
+
+.shape-4 {
+  bottom: 20%;
+  left: 30%;
+  animation-delay: 15s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(30px, -30px) rotate(90deg);
+  }
+  50% {
+    transform: translate(-20px, 20px) rotate(180deg);
+  }
+  75% {
+    transform: translate(20px, 30px) rotate(270deg);
+  }
+}
+</style>
+
+<!-- Animated SVG Background -->
+<div class="svg-background">
+  <svg class="floating-shape shape-1" width="120" height="120" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="50" fill="var(--accent-color)" opacity="0.6"/>
+  </svg>
+  <svg class="floating-shape shape-2" width="100" height="100" viewBox="0 0 100 100">
+    <rect width="80" height="80" x="10" y="10" fill="#6bb6ff" opacity="0.5" rx="20"/>
+  </svg>
+  <svg class="floating-shape shape-3" width="90" height="90" viewBox="0 0 90 90">
+    <polygon points="45,10 80,70 10,70" fill="var(--accent-color)" opacity="0.4"/>
+  </svg>
+  <svg class="floating-shape shape-4" width="110" height="110" viewBox="0 0 110 110">
+    <ellipse cx="55" cy="55" rx="40" ry="50" fill="#6bb6ff" opacity="0.5"/>
+  </svg>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+
+<div class="user-layout">
+  <%- include('../partials/user-sidebar') %>
+
+  <div class="user-content" style="position: relative; z-index: 1;">
+    <div class="browse-header">
+      <h1>Documentation Library</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 10px;">Browse through our collection of technical documentation</p>
+    </div>
+
+    <div class="search-form" style="margin: 30px 0;">
+      <form action="/search" method="GET" style="display: flex; gap: 10px;">
+        <input type="text" name="q" placeholder="Search by content..." style="flex: 1;">
+        <input type="text" name="author" placeholder="Search by author..." style="flex: 1;">
+        <input type="text" name="topic" placeholder="Search by topic..." style="flex: 1;">
+        <button type="submit" class="btn btn-primary">Search</button>
+      </form>
+    </div>
+
+    <% if (subjects.length > 0) { %>
+      <div class="bookshelf">
+        <% subjects.forEach((subject, index) => { %>
+          <div class="book" data-subject="<%= subject.slug %>" style="animation-delay: <%= index * 0.1 %>s;">
+            <a href="/subject/<%= subject.slug %>" class="book-link">
+              <div class="book-spine">
+                <div class="book-spine-title"><%= subject.title %></div>
+                <div class="book-spine-author"><%= subject.author.username %></div>
+              </div>
+              <div class="book-cover">
+                <% if (subject.coverImage) { %>
+                  <div class="book-cover-image" style="background-image: url('<%= subject.coverImage %>');"></div>
+                <% } else { %>
+                  <div class="book-cover-default">
+                    <div class="book-icon">📚</div>
+                  </div>
+                <% } %>
+                <div class="book-cover-content">
+                  <h3><%= subject.title %></h3>
+                  <p class="book-author">by <%= subject.author.username %></p>
+                  <p class="book-description"><%= subject.description ? subject.description.substring(0, 100) : 'Explore this subject' %><%= subject.description && subject.description.length > 100 ? '...' : '' %></p>
+                  <% if (subject.topics && subject.topics.length > 0) { %>
+                    <div class="book-topics">
+                      <strong><%= subject.topics.length %> Topic<%= subject.topics.length !== 1 ? 's' : '' %></strong>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            </a>
+          </div>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <div style="text-align: center; padding: 60px 20px;">
+        <p style="font-size: 1.2rem; color: var(--text-secondary);">No documentation available yet.</p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,46 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1>Manage Subjects</h1>
+      <a href="/admin/subjects/create" class="btn btn-primary">Create New Subject</a>
+    </div>
+
+    <% if (subjects.length > 0) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Order</th>
+            <th>Published</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% subjects.forEach(subject => { %>
+            <tr>
+              <td><%= subject.title %></td>
+              <td><%= subject.author.username %></td>
+              <td><%= subject.displayOrder %></td>
+              <td><%= subject.isPublished ? 'Yes' : 'No' %></td>
+              <td>
+                <a href="/admin/subjects/edit/<%= subject.id %>" class="btn btn-secondary">Edit</a>
+                <form action="/admin/subjects/delete/<%= subject.id %>" method="POST" style="display: inline;" onsubmit="return confirmDelete();">
+                  <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <p>No subjects found. <a href="/admin/subjects/create">Create one now</a></p>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../../partials/footer') %>

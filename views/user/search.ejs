@@ -1,0 +1,44 @@
+<%- include('../partials/header') %>
+
+<div class="user-layout">
+  <%- include('../partials/user-sidebar') %>
+
+  <div class="user-content">
+
+    <h1>Search Results</h1>
+
+    <div class="search-form">
+      <form action="/search" method="GET" style="display: flex; gap: 10px; margin-bottom: 30px;">
+        <input type="text" name="q" placeholder="Search by content..." value="<%= query.q || '' %>" style="flex: 1;">
+        <input type="text" name="author" placeholder="Search by author..." value="<%= query.author || '' %>" style="flex: 1;">
+        <input type="text" name="topic" placeholder="Search by topic..." value="<%= query.topic || '' %>" style="flex: 1;">
+        <button type="submit" class="btn btn-primary">Search</button>
+      </form>
+    </div>
+
+    <% if (concepts.length > 0) { %>
+      <p style="margin-bottom: 20px; color: var(--text-secondary);">Found <%= concepts.length %> result(s)</p>
+
+      <% concepts.forEach(concept => { %>
+        <div class="card">
+          <h3><a href="/docs/<%= concept.topic.subject.slug %>/<%= concept.topic.slug %>/<%= concept.slug %>" style="color: var(--accent-color); text-decoration: none;"><%= concept.title %></a></h3>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 10px 0;">
+            <%= concept.topic.subject.title %> › <%= concept.topic.title %>
+          </p>
+          <% if (concept.lastRevisedOn) { %>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">Last revised: <%= new Date(concept.lastRevisedOn).toLocaleDateString() %></p>
+          <% } %>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="card">
+        <p>No results found. Try different search terms.</p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

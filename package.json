@@ -1,0 +1,46 @@
+{
+  "name": "docpress",
+  "version": "1.0.0",
+  "description": "Documentation web application like Github Docs",
+  "main": "app.js",
+  "scripts": {
+    "start": "node --no-deprecation app.js",
+    "dev": "nodemon --no-deprecation app.js",
+    "init-db": "node scripts/init-db.js",
+    "create-admin": "node scripts/create-admin.js",
+    "reset-db": "node scripts/reset-db.js",
+    "seed": "node scripts/seed-data.js"
+  },
+  "keywords": [
+    "documentation",
+    "express",
+    "ejs",
+    "mongodb",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1515.0",
+    "axios": "^1.13.2",
+    "bcryptjs": "^2.4.3",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "express-validator": "^7.0.1",
+    "marked": "^11.1.0",
+    "method-override": "^3.0.0",
+    "mongoose": "^8.0.3",
+    "multer": "^1.4.5-lts.1",
+    "multer-s3": "^3.0.1",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.35.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

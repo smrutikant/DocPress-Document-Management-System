@@ -1,0 +1,46 @@
+<%- include('../partials/header') %>
+
+<div class="container">
+  <div class="content">
+    <h1>Admin Dashboard</h1>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>Total Subjects</h3>
+        <div class="value"><%= stats.subjectsCount %></div>
+      </div>
+      <div class="stat-card">
+        <h3>Total Topics</h3>
+        <div class="value"><%= stats.topicsCount %></div>
+      </div>
+      <div class="stat-card">
+        <h3>Total Concepts</h3>
+        <div class="value"><%= stats.conceptsCount %></div>
+      </div>
+      <div class="stat-card">
+        <h3>Total Users</h3>
+        <div class="value"><%= stats.usersCount %></div>
+      </div>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>Manage Subjects</h3>
+        <p>Create and manage documentation subjects</p>
+        <a href="/admin/subjects" class="btn btn-primary">Go to Subjects</a>
+      </div>
+      <div class="card">
+        <h3>Manage Topics</h3>
+        <p>Organize topics within subjects</p>
+        <a href="/admin/topics" class="btn btn-primary">Go to Topics</a>
+      </div>
+      <div class="card">
+        <h3>Manage Concepts</h3>
+        <p>Create and edit documentation pages</p>
+        <a href="/admin/concepts" class="btn btn-primary">Go to Concepts</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

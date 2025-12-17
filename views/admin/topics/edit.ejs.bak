@@ -1,0 +1,53 @@
+<%- include('../../partials/header') %>
+
+<div class="container">
+  <div class="content" style="max-width: 800px; margin: 0 auto;">
+    <h1>Edit Topic</h1>
+
+    <form action="/admin/topics/edit/<%= topic.id %>" method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="title">Title *</label>
+        <input type="text" id="title" name="title" value="<%= topic.title %>" required>
+      </div>
+
+      <div class="form-group">
+        <label for="subjectId">Subject *</label>
+        <select id="subjectId" name="subjectId" required>
+          <% subjects.forEach(subject => { %>
+            <option value="<%= subject.id %>" <%= subject.id === topic.subjectId ? 'selected' : '' %>><%= subject.title %></option>
+          <% }); %>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4"><%= topic.description || '' %></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="coverImage">Cover Image</label>
+        <input type="file" id="coverImage" name="coverImage" accept="image/*">
+        <% if (topic.coverImage) { %>
+          <p>Current image: <%= topic.coverImage %></p>
+        <% } %>
+      </div>
+
+      <div class="form-group">
+        <label for="displayOrder">Display Order</label>
+        <input type="number" id="displayOrder" name="displayOrder" value="<%= topic.displayOrder %>">
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="isPublished" <%= topic.isPublished ? 'checked' : '' %>>
+          Published
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Update Topic</button>
+      <a href="/admin/topics" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+
+<%- include('../../partials/footer') %>

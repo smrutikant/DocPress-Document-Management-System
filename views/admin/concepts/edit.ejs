@@ -1,0 +1,128 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content" style="max-width: 1000px;">
+    <h1>Edit Concept</h1>
+
+    <form action="/admin/concepts/edit/<%= concept.id %>" method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="title">Title *</label>
+        <input type="text" id="title" name="title" value="<%= concept.title %>" required>
+      </div>
+
+      <div class="form-group">
+        <label for="topicId">Topic *</label>
+        <select id="topicId" name="topicId" required disabled>
+          <% topics.forEach(topic => { %>
+            <option value="<%= topic.id %>" <%= topic.id === concept.topicId ? 'selected' : '' %>><%= topic.subject.title %> / <%= topic.title %></option>
+          <% }); %>
+        </select>
+        <input type="hidden" name="topicId" value="<%= concept.topicId %>">
+        <small style="color: var(--text-secondary);">Topic cannot be changed while editing. Use "Move Concept" from the concept list to change topic.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="coverImage">Cover Image</label>
+        <% if (concept.coverImage) { %>
+          <% const imagePath = concept.coverImage.startsWith('/') ? concept.coverImage : '/' + concept.coverImage; %>
+          <div style="margin-bottom: 16px;">
+            <p style="margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Current Image:</p>
+            <img src="<%= imagePath %>" alt="<%= concept.title %>" style="width: 250px; height: auto; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          </div>
+        <% } %>
+        <input type="file" id="coverImage" name="coverImage" accept="image/*">
+        <small style="color: var(--text-secondary);">Upload a new image to replace the current one</small>
+      </div>
+
+      <div class="form-group">
+        <label for="displayOrder">Display Order</label>
+        <input type="number" id="displayOrder" name="displayOrder" value="<%= concept.displayOrder %>">
+      </div>
+
+      <div class="form-group">
+        <label>Upload HTML/Markdown File (optional)</label>
+        <input type="file" id="fileUpload" accept=".html,.md,.markdown" onchange="uploadFile(this, 'editor')">
+        <small style="color: var(--text-secondary);">Upload an HTML or Markdown file to replace content</small>
+      </div>
+
+      <div class="form-group">
+        <label for="content">Content</label>
+        <div id="editor" style="height: 400px;"></div>
+        <input type="hidden" id="content" name="content">
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="isPublished" <%= concept.isPublished ? 'checked' : '' %>>
+          Published
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Update Concept</button>
+      <a href="/admin/concepts" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+
+<%- include('../../partials/footer') %>
+
+<script>
+(function() {
+  console.log('Script running - Quill library available:', typeof Quill !== 'undefined');
+  console.log('Editor element exists:', !!document.getElementById('editor'));
+
+  // Initialize Quill editor after DOM and Quill are loaded
+  if (typeof Quill !== 'undefined') {
+    window.quillEditor = new Quill('#editor', {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'script': 'sub'}, { 'script': 'super' }],
+          [{ 'indent': '-1'}, { 'indent': '+1' }],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'align': [] }],
+          ['link', 'image'],
+          ['clean']
+        ]
+      }
+    });
+
+    // Load existing content - using JSON encoding to safely pass HTML through JavaScript
+    const existingContent = <%- content ? JSON.stringify(content) : '""' %>;
+
+    console.log('Raw content received from server, length:', existingContent.length);
+    console.log('Content preview:', existingContent.substring(0, 200));
+
+    if (existingContent && existingContent.trim()) {
+      window.quillEditor.root.innerHTML = existingContent;
+      console.log('✅ Loaded existing content into editor');
+    } else {
+      console.log('⚠️ No existing content to load');
+    }
+
+    console.log('✅ Quill editor initialized:', !!window.quillEditor);
+
+    // Save content on form submit
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        console.log('Form submitting...');
+        const contentHtml = window.quillEditor.root.innerHTML;
+        const hiddenField = document.getElementById('content');
+        hiddenField.value = contentHtml;
+        console.log('✅ Content saved to hidden field, length:', contentHtml.length);
+        console.log('Hidden field value length:', hiddenField.value.length);
+      });
+      console.log('✅ Form submit listener attached');
+    }
+  } else {
+    console.error('❌ Quill library not loaded!');
+  }
+})();
+</script>

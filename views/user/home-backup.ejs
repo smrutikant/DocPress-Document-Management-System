@@ -1,0 +1,163 @@
+<%- include('../partials/header') %>
+
+<div class="landing-page">
+  <nav class="landing-nav">
+    <div class="nav-container">
+      <a href="/" class="nav-logo">DocPress</a>
+      <div class="nav-links">
+        <a href="/browse" class="nav-link">Browse</a>
+        <a href="/search" class="nav-link">Search</a>
+        <% if (user) { %>
+          <a href="/logout" class="nav-link">Logout</a>
+        <% } else { %>
+          <a href="/login" class="nav-link-btn">Sign In</a>
+          <a href="/register" class="btn btn-primary">Get Started</a>
+        <% } %>
+      </div>
+    </div>
+  </nav>
+
+  <section class="landing-hero">
+    <div class="landing-container">
+      <div class="hero-badge">📚 Technical Documentation Platform</div>
+      <h1 class="landing-title">Welcome to DocPress</h1>
+      <p class="landing-subtitle">A modern, intuitive platform for creating, organizing, and sharing technical documentation. Built for teams who value clarity and collaboration.</p>
+
+      <form action="/search" method="GET" class="landing-search">
+        <div class="search-box">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <input type="text" name="q" placeholder="Search documentation..." class="search-input">
+          <button type="submit" class="search-btn">Search</button>
+        </div>
+      </form>
+
+      <div class="hero-actions">
+        <a href="/browse" class="btn btn-primary btn-large">Explore Docs</a>
+        <% if (!user) { %>
+          <a href="/register" class="btn btn-secondary btn-large">Create Account</a>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-stats">
+    <div class="landing-container">
+      <div class="stats-grid-landing">
+        <div class="stat-card-landing">
+          <div class="stat-icon">📚</div>
+          <div class="stat-number"><%= subjects.length %></div>
+          <div class="stat-label">Documentation Subjects</div>
+        </div>
+        <div class="stat-card-landing">
+          <div class="stat-icon">📄</div>
+          <div class="stat-number"><%= recentConcepts.length %></div>
+          <div class="stat-label">Active Pages</div>
+        </div>
+        <div class="stat-card-landing">
+          <div class="stat-icon">🔍</div>
+          <div class="stat-number">100%</div>
+          <div class="stat-label">Searchable</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <% if (subjects.length > 0) { %>
+  <section class="landing-subjects">
+    <div class="landing-container">
+      <div class="section-header">
+        <h2>Explore Documentation</h2>
+        <p>Browse through our comprehensive collection of technical documentation</p>
+      </div>
+
+      <div class="subjects-grid">
+        <% subjects.forEach(subject => { %>
+          <a href="/subject/<%= subject.slug %>" class="subject-card">
+            <% if (subject.coverImage) { %>
+              <div class="subject-image" style="background-image: url('<%= subject.coverImage %>')"></div>
+            <% } else { %>
+              <div class="subject-image subject-placeholder"></div>
+            <% } %>
+            <div class="subject-content">
+              <h3 class="subject-title"><%= subject.title %></h3>
+              <p class="subject-description"><%= subject.description || 'Explore this subject' %></p>
+              <div class="subject-meta">
+                <span class="subject-author">By <%= subject.author.username %></span>
+              </div>
+            </div>
+            <div class="subject-arrow">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </a>
+        <% }); %>
+      </div>
+
+      <div class="section-cta">
+        <a href="/browse" class="btn btn-primary">View All Documentation</a>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <% if (recentConcepts.length > 0) { %>
+  <section class="landing-recent">
+    <div class="landing-container">
+      <div class="section-header">
+        <h2>Recently Updated</h2>
+        <p>Stay up to date with the latest documentation changes</p>
+      </div>
+
+      <div class="recent-grid">
+        <% recentConcepts.forEach(concept => { %>
+          <a href="/docs/<%= concept.topic.subject.slug %>/<%= concept.topic.slug %>/<%= concept.slug %>" class="recent-card">
+            <div class="recent-card-icon">📄</div>
+            <div class="recent-card-content">
+              <h4 class="recent-card-title"><%= concept.title %></h4>
+              <p class="recent-card-path"><%= concept.topic.subject.title %> › <%= concept.topic.title %></p>
+              <% if (concept.lastRevisedOn) { %>
+                <span class="recent-card-date">Updated <%= new Date(concept.lastRevisedOn).toLocaleDateString() %></span>
+              <% } %>
+            </div>
+          </a>
+        <% }); %>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <footer class="landing-footer">
+    <div class="landing-container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <h3>DocPress</h3>
+          <p>Modern technical documentation platform</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Product</h4>
+            <a href="/browse">Browse Docs</a>
+            <a href="/search">Search</a>
+          </div>
+          <div class="footer-column">
+            <h4>Account</h4>
+            <% if (user) { %>
+              <a href="/logout">Logout</a>
+            <% } else { %>
+              <a href="/login">Sign In</a>
+              <a href="/register">Register</a>
+            <% } %>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; <%= new Date().getFullYear() %> DocPress. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<%- include('../partials/footer') %>

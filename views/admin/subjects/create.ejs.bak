@@ -1,0 +1,41 @@
+<%- include('../../partials/header') %>
+
+<div class="container">
+  <div class="content" style="max-width: 800px; margin: 0 auto;">
+    <h1>Create New Subject</h1>
+
+    <form action="/admin/subjects/create" method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="title">Title *</label>
+        <input type="text" id="title" name="title" required>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="coverImage">Cover Image</label>
+        <input type="file" id="coverImage" name="coverImage" accept="image/*">
+      </div>
+
+      <div class="form-group">
+        <label for="displayOrder">Display Order</label>
+        <input type="number" id="displayOrder" name="displayOrder" value="0">
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="isPublished" checked>
+          Publish immediately
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Create Subject</button>
+      <a href="/admin/subjects" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+
+<%- include('../../partials/footer') %>

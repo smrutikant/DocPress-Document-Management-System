@@ -1,0 +1,1385 @@
+<%- include('../partials/header') %>
+
+<style>
+  .docs-layout {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .docs-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 5px;
+    z-index: 100;
+    gap: 15px;
+  }
+
+  .menu-toggle {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: color 0.2s;
+    display: none;
+    flex-shrink: 0;
+  }
+
+  .menu-toggle:hover {
+    color: var(--accent-color);
+  }
+
+  .back-arrow {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: color 0.2s;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .back-arrow:hover {
+    color: var(--accent-color);
+  }
+
+  .docs-logo {
+    height: 60px;
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .header-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  .header-search {
+    position: absolute;
+    left: 58%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 600px;
+    margin: 0;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 45px 10px 15px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background-color: var(--bg-secondary);
+  }
+
+  .search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary);
+    pointer-events: none;
+  }
+
+  .search-results {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    max-height: 500px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+  }
+
+  .search-results.show {
+    display: block;
+  }
+
+  .search-result-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-primary);
+  }
+
+  .search-result-item:last-child {
+    border-bottom: none;
+  }
+
+  .search-result-item:hover {
+    background-color: var(--bg-hover);
+  }
+
+  .search-result-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+  }
+
+  .search-result-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .search-result-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+  }
+
+  .search-result-path {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .search-result-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-left: 6px;
+  }
+
+  .search-no-results {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .header-right {
+    margin-left: auto;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-search-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 8px;
+    transition: color 0.2s;
+  }
+
+  .mobile-search-toggle:hover {
+    color: var(--accent-color);
+  }
+
+  .mobile-search-toggle svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .mobile-search-wrapper {
+    display: none;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 10px;
+    z-index: 999;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile-search-wrapper.show {
+    display: block;
+  }
+
+  .mobile-search-wrapper .search-input {
+    padding: 10px 15px;
+  }
+
+  .mobile-search-wrapper .search-results {
+    position: relative;
+    top: 8px;
+    left: 0;
+    right: 0;
+  }
+
+  .logout-button {
+    padding: 8px 20px;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+
+  .logout-button:hover {
+    background-color: var(--bg-hover);
+    color: var(--accent-color);
+  }
+
+  /* Profile Dropdown */
+  .profile-dropdown {
+    position: relative;
+  }
+
+  .profile-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent-color);
+    transition: all 0.2s;
+  }
+
+  .profile-pic:hover {
+    border-color: var(--accent-hover);
+    transform: scale(1.05);
+  }
+
+  .profile-pic-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    border: 2px solid var(--accent-color);
+    transition: all 0.2s;
+  }
+
+  .profile-pic-placeholder:hover {
+    transform: scale(1.05);
+  }
+
+  .profile-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s;
+    z-index: 1000;
+  }
+
+  .profile-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .profile-menu-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .profile-menu-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .profile-menu-role {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+  }
+
+  .profile-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .profile-menu-item:hover {
+    background: var(--bg-hover);
+    color: var(--accent-color);
+  }
+
+  .profile-menu-item.logout:hover {
+    background: #fee;
+    color: #e74c3c;
+  }
+
+  .profile-menu-item svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Tablet View */
+  @media (max-width: 1024px) {
+    .header-search {
+      max-width: 450px;
+    }
+
+    .header-subtitle {
+      display: none;
+    }
+
+    .docs-navbar {
+      padding: 0 15px;
+      gap: 10px;
+    }
+  }
+
+  /* Mobile Landscape / Small Tablet */
+  @media (max-width: 900px) {
+    .header-search {
+      position: relative;
+      left: auto;
+      transform: none;
+      max-width: 300px;
+      flex: 1;
+    }
+
+    .header-title {
+      font-size: 1rem;
+    }
+
+    .docs-logo {
+      height: 50px;
+    }
+  }
+
+  /* Mobile View */
+  @media (max-width: 768px) {
+    .menu-toggle {
+      display: block;
+    }
+
+    .back-arrow {
+      display: none;
+    }
+
+    .header-search {
+      display: none;
+    }
+
+    .mobile-search-toggle {
+      display: block;
+    }
+
+    .header-brand {
+      flex: 1;
+    }
+
+    .docs-navbar {
+      height: 60px;
+      padding: 0 10px;
+      gap: 8px;
+    }
+
+    .docs-logo {
+      height: 40px;
+    }
+
+    .header-title {
+      font-size: 0.95rem;
+    }
+
+    .logout-button {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+    }
+
+    .profile-pic,
+    .profile-pic-placeholder {
+      width: 36px;
+      height: 36px;
+    }
+
+    .profile-pic-placeholder {
+      font-size: 1rem;
+    }
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    .header-title {
+      font-size: 0.85rem;
+      max-width: 150px;
+    }
+
+    .logout-button {
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+
+    .profile-pic,
+    .profile-pic-placeholder {
+      width: 32px;
+      height: 32px;
+    }
+
+    .profile-pic-placeholder {
+      font-size: 0.9rem;
+    }
+
+    .profile-menu {
+      right: -10px;
+      min-width: 180px;
+    }
+
+    .profile-menu-item {
+      padding: 10px 14px;
+      font-size: 0.9rem;
+    }
+  }
+
+    .docs-navbar {
+      padding: 0 8px;
+      gap: 6px;
+    }
+  }
+
+  .docs-sidebar {
+    width: 260px;
+    background-color: var(--bg-primary);
+    border-right: 1px solid var(--border-color);
+    position: fixed;
+    top: 70px;
+    left: 0;
+    height: calc(100vh - 70px);
+    overflow-y: auto;
+    padding: 20px 0;
+    transition: transform 0.3s ease;
+    z-index: 90;
+  }
+
+  .docs-sidebar.hidden {
+    transform: translateX(-100%);
+  }
+
+  @media (max-width: 768px) {
+    .docs-sidebar {
+      transform: translateX(-100%);
+      z-index: 1000;
+      box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .docs-sidebar.show {
+      transform: translateX(0);
+    }
+
+    .docs-main-content {
+      margin-left: 0;
+      max-width: 100vw;
+    }
+  }
+
+  .docs-sidebar h3 {
+    font-size: 0.95rem;
+    margin: 0 20px 15px 20px;
+    color: var(--text-primary);
+  }
+
+  .docs-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .docs-sidebar > ul > li {
+    margin-bottom: 20px;
+  }
+
+  .docs-sidebar a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: block;
+    padding: 8px 20px;
+    transition: color 0.2s;
+    font-size: 0.9rem;
+  }
+
+  .docs-sidebar > ul > li > a {
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .docs-sidebar a:hover {
+    color: var(--text-primary);
+  }
+
+  .docs-sidebar a.active {
+    color: var(--accent-color);
+  }
+
+  .docs-sidebar ul ul {
+    margin-left: 0;
+  }
+
+  .docs-sidebar ul ul li {
+    margin-bottom: 2px;
+  }
+
+  aside.docs-sidebar {
+    border-right: 1px solid var(--border-color);
+    margin-top: 70px;
+    height: calc(100vh - 70px);
+    overflow-y: auto;
+    width: 260px;
+    padding-top: 20px;
+    position: fixed;
+}
+
+  .docs-main-content {
+      margin-top: 70px;
+      padding: 40px;
+      flex: 1;
+      max-width: calc(100vw - 260px);
+      margin-left: 260px;
+  }
+
+  .docs-content-wrapper {
+    width: 100%;
+    position: relative;
+  }
+
+  .pdf-download-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 10px 20px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    z-index: 10;
+  }
+
+  .pdf-download-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .pdf-download-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .pdf-download-btn .btn-text {
+    display: inline;
+  }
+
+  @media (max-width: 768px) {
+    .pdf-download-btn {
+        position: fixed;
+        top: 68px !important;
+        right: 18px;
+        top: auto;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        background-color: transparent;
+        border-radius: 50%;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .pdf-download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .pdf-download-btn svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .pdf-download-btn .btn-text {
+      display: none;
+    }
+  }
+
+  .scroll-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 40px;
+    height: 40px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s;
+    z-index: 1000;
+  }
+
+  .scroll-to-top:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--text-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .scroll-to-top.show {
+    display: flex;
+  }
+
+  .scroll-to-top svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .scroll-to-top::before {
+    content: 'Scroll to top';
+    position: absolute;
+    bottom: 55px;
+    right: 0;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .scroll-to-top:hover::before {
+    opacity: 1;
+  }
+
+  /* Scrollbar styling */
+  .docs-sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .docs-sidebar::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+  }
+
+  .docs-sidebar::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+  }
+
+  .docs-sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+  }
+</style>
+
+<div class="docs-layout">
+  <!-- Custom Navbar -->
+  <div class="docs-navbar">
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    <a href="/browse" class="back-arrow">←</a>
+    <img src="/images/logo.png" alt="Logo" class="docs-logo">
+
+    <div class="header-brand">
+      <div class="header-title"><%= concept.topic.subject.title %></div>
+      <div class="header-subtitle">Documentation</div>
+    </div>
+
+    <!-- Search Box -->
+    <div class="header-search">
+      <input type="text" class="search-input" id="conceptSearch" placeholder="Search documentation..." autocomplete="off">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <div class="header-right">
+      <button class="mobile-search-toggle" onclick="toggleMobileSearch()" aria-label="Toggle search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+      </button>
+      <% if (user) { %>
+        <div class="profile-dropdown">
+          <button class="profile-button" onclick="toggleProfileMenu()" aria-label="User menu">
+            <% if (user.profilePicture) { %>
+              <img src="<%= user.profilePicture %>" alt="<%= user.username %>" class="profile-pic" referrerpolicy="no-referrer">
+            <% } else { %>
+              <div class="profile-pic-placeholder">
+                <%= user.username.charAt(0).toUpperCase() %>
+              </div>
+            <% } %>
+          </button>
+          <div class="profile-menu" id="profileMenu">
+            <div class="profile-menu-header">
+              <div class="profile-menu-name"><%= user.username %></div>
+              <div class="profile-menu-role"><%= user.role %></div>
+            </div>
+            <a href="/profile" class="profile-menu-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              My Profile
+            </a>
+            <a href="/logout" class="profile-menu-item logout">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              Logout
+            </a>
+          </div>
+        </div>
+      <% } else { %>
+        <a href="/login" class="logout-button">Login</a>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Mobile Search Wrapper -->
+  <div class="mobile-search-wrapper" id="mobileSearchWrapper">
+    <input type="text" class="search-input" id="mobileConceptSearch" placeholder="Search documentation..." autocomplete="off">
+    <div class="search-results" id="mobileSearchResults"></div>
+  </div>
+
+  <!-- Subject Sidebar -->
+  <aside class="docs-sidebar">
+    <h3><%= concept.topic.subject.title %></h3>
+    <ul>
+      <% sidebarTopics.forEach(sidebarTopic => { %>
+        <li>
+          <a href="/topic/<%= sidebarTopic.slug %>"><%= sidebarTopic.title %></a>
+          <% if (sidebarTopic.concepts && sidebarTopic.concepts.length > 0) { %>
+            <ul>
+              <% sidebarTopic.concepts.forEach(c => { %>
+                <li>
+                  <a href="/docs/<%= concept.topic.subject.slug %>/<%= sidebarTopic.slug %>/<%= c.slug %>" class="<%= c.id === concept.id ? 'active' : '' %>"><%= c.title %></a>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+        </li>
+      <% }); %>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="docs-main-content">
+    <div class="docs-content-wrapper">
+      <button class="pdf-download-btn" onclick="downloadPDF()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span class="btn-text">Download PDF</span>
+      </button>
+
+      <nav style="margin-bottom: 20px; font-size: 0.9rem;">
+        <a href="/subject/<%= concept.topic.subject.slug %>" style="color: var(--accent-color);"><%= concept.topic.subject.title %></a>
+        <span style="color: var(--text-secondary);"> › </span>
+        <a href="/topic/<%= concept.topic.slug %>" style="color: var(--accent-color);"><%= concept.topic.title %></a>
+        <span style="color: var(--text-secondary);"> › </span>
+        <span><%= concept.title %></span>
+      </nav>
+
+      <% if (concept.coverImage) { %>
+        <img src="/<%= concept.coverImage %>" alt="<%= concept.title %>" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px; margin-bottom: 20px;">
+      <% } %>
+
+      <h1><%= concept.title %></h1>
+
+      <% if (concept.lastRevisedOn) { %>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 30px;">
+          Last revised on <%= new Date(concept.lastRevisedOn).toLocaleDateString() %>
+        </p>
+      <% } %>
+
+      <div class="documentation-content">
+        <%- content %>
+      </div>
+
+      <!-- Navigation to Previous/Next -->
+      <div class="page-navigation">
+        <% if (previousConcept) { %>
+          <a href="/docs/<%= concept.topic.subject.slug %>/<%= concept.topic.slug %>/<%= previousConcept.slug %>">
+            <span class="nav-label">← Previous</span>
+            <span class="nav-title"><%= previousConcept.title %></span>
+          </a>
+        <% } else { %>
+          <div></div>
+        <% } %>
+
+        <% if (nextConcept) { %>
+          <a href="/docs/<%= concept.topic.subject.slug %>/<%= concept.topic.slug %>/<%= nextConcept.slug %>">
+            <span class="nav-label">Next →</span>
+            <span class="nav-title"><%= nextConcept.title %></span>
+          </a>
+        <% } else { %>
+          <div></div>
+        <% } %>
+      </div>
+
+      <!-- Related Topics Section -->
+      <div class="related-topics-section">
+        <h3>Related Topics</h3>
+        <% if (relatedTopics && relatedTopics.length > 0) { %>
+          <div class="related-topics-grid">
+            <% relatedTopics.forEach(related => { %>
+              <a href="/topic/<%= related.slug %>" class="related-topic-card">
+                <h4><%= related.title %></h4>
+                <% if (related.description) { %>
+                  <p><%= related.description.substring(0, 120) %><%= related.description.length > 120 ? '...' : '' %></p>
+                <% } %>
+              </a>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">No related topics</p>
+        <% } %>
+      </div>
+
+      <!-- Rating Section -->
+      <div class="rating-section">
+        <h3>Rate this Page</h3>
+        <div class="rating-display">
+          <div class="stars">
+            <% for (let i = 1; i <= 5; i++) { %>
+              <span class="star <%= i <= Math.round(avgRating) ? 'filled' : '' %>">★</span>
+            <% } %>
+          </div>
+          <span><%= avgRating %> (<%= ratingsCount %> ratings)</span>
+        </div>
+
+        <% if (user) { %>
+          <form action="/rate-concept/<%= concept.id %>" method="POST" style="margin-top: 20px;">
+            <div class="stars" style="margin-bottom: 15px;">
+              <% for (let i = 1; i <= 5; i++) { %>
+                <span class="star <%= i <= userRating ? 'filled' : '' %>">★</span>
+              <% } %>
+            </div>
+            <input type="hidden" id="rating-input" name="rating" value="<%= userRating || 0 %>">
+            <div class="form-group">
+              <textarea name="comment" placeholder="Add a comment (optional)" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Rating</button>
+          </form>
+        <% } else { %>
+          <p><a href="/login">Login</a> to rate this page</p>
+        <% } %>
+
+        <!-- Comments Section -->
+        <% if (ratingsWithComments && ratingsWithComments.length > 0) { %>
+          <div class="comments-section">
+            <h4>Comments (<%= ratingsWithComments.length %>)</h4>
+            <% ratingsWithComments.forEach(rating => { %>
+              <div class="comment-item">
+                <div class="comment-header">
+                  <div class="comment-author-wrapper">
+                    <div class="comment-profile-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                    </div>
+                    <span class="comment-author"><%= rating.user.username %></span>
+                  </div>
+                  <div class="comment-rating">
+                    <% for (let i = 1; i <= 5; i++) { %>
+                      <span class="star-small <%= i <= rating.rating ? 'filled' : '' %>">★</span>
+                    <% } %>
+                  </div>
+                </div>
+                <p class="comment-text"><%= rating.comment %></p>
+                <span class="comment-date"><%= new Date(rating.createdAt).toLocaleDateString() %></span>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-to-top" onclick="scrollToTop()" aria-label="Scroll to top">
+  <svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="currentColor">
+    <path d="M3.22 10.53a.749.749 0 0 1 0-1.06l4.25-4.25a.749.749 0 0 1 1.06 0l4.25 4.25a.749.749 0 1 1-1.06 1.06L8 6.811 4.28 10.53a.749.749 0 0 1-1.06 0Z"></path>
+  </svg>
+</button>
+
+<%- include('../partials/footer') %>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+function toggleSidebar() {
+  const sidebar = document.querySelector('.docs-sidebar');
+  sidebar.classList.toggle('show');
+  sidebar.classList.toggle('hidden');
+}
+
+function toggleMobileSearch() {
+  const mobileSearchWrapper = document.getElementById('mobileSearchWrapper');
+  mobileSearchWrapper.classList.toggle('show');
+
+  if (mobileSearchWrapper.classList.contains('show')) {
+    document.getElementById('mobileConceptSearch').focus();
+  } else {
+    document.getElementById('mobileSearchResults').classList.remove('show');
+  }
+}
+
+function toggleProfileMenu() {
+  const profileMenu = document.getElementById('profileMenu');
+  profileMenu.classList.toggle('show');
+}
+
+// Close profile menu when clicking outside
+document.addEventListener('click', function(event) {
+  const profileDropdown = document.querySelector('.profile-dropdown');
+  const profileMenu = document.getElementById('profileMenu');
+
+  if (profileDropdown && !profileDropdown.contains(event.target)) {
+    profileMenu.classList.remove('show');
+  }
+});
+
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+// Show/hide scroll to top button
+window.addEventListener('scroll', function() {
+  const scrollBtn = document.querySelector('.scroll-to-top');
+  if (window.pageYOffset > 300) {
+    scrollBtn.classList.add('show');
+  } else {
+    scrollBtn.classList.remove('show');
+  }
+});
+
+// Search functionality - shared function
+function performSearch(inputElement, resultsElement) {
+  let searchTimeout;
+
+  inputElement.addEventListener('input', function() {
+    const query = this.value.trim();
+
+    clearTimeout(searchTimeout);
+
+    if (query.length < 2) {
+      resultsElement.classList.remove('show');
+      resultsElement.innerHTML = '';
+      return;
+    }
+
+    searchTimeout = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search-concepts?q=${encodeURIComponent(query)}`);
+        const results = await response.json();
+
+        if (results.length === 0) {
+          resultsElement.innerHTML = '<div class="search-no-results">No results found</div>';
+        } else {
+          resultsElement.innerHTML = results.map(result => {
+            const badge = result.type === 'topic' ? '<span class="search-result-badge">Topic</span>' : '';
+            const imageSrc = result.coverImage ? `/${result.coverImage}` : '/images/logo.png';
+            const path = result.type === 'topic'
+              ? `${result.subject}`
+              : `${result.subject} › ${result.topic}`;
+
+            return `
+              <a href="${result.url}" class="search-result-item">
+                <img src="${imageSrc}" alt="${result.title}" class="search-result-image" onerror="this.src='/images/logo.png'">
+                <div class="search-result-content">
+                  <div class="search-result-title">${result.title}${badge}</div>
+                  <div class="search-result-path">${path}</div>
+                </div>
+              </a>
+            `;
+          }).join('');
+        }
+
+        resultsElement.classList.add('show');
+      } catch (error) {
+        console.error('Search error:', error);
+        resultsElement.classList.remove('show');
+      }
+    }, 300);
+  });
+}
+
+// Desktop search
+const searchInput = document.getElementById('conceptSearch');
+const searchResults = document.getElementById('searchResults');
+if (searchInput && searchResults) {
+  performSearch(searchInput, searchResults);
+}
+
+// Mobile search
+const mobileSearchInput = document.getElementById('mobileConceptSearch');
+const mobileSearchResults = document.getElementById('mobileSearchResults');
+if (mobileSearchInput && mobileSearchResults) {
+  performSearch(mobileSearchInput, mobileSearchResults);
+}
+
+// Close search results when clicking outside
+document.addEventListener('click', function(e) {
+  const mobileWrapper = document.getElementById('mobileSearchWrapper');
+
+  if (searchInput && searchResults && !searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+    searchResults.classList.remove('show');
+  }
+
+  if (mobileWrapper && !mobileWrapper.contains(e.target) && !e.target.closest('.mobile-search-toggle')) {
+    if (mobileWrapper.classList.contains('show')) {
+      mobileWrapper.classList.remove('show');
+      mobileSearchResults.classList.remove('show');
+    }
+  }
+});
+
+// Close search results on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    searchResults.classList.remove('show');
+    mobileSearchResults.classList.remove('show');
+
+    const mobileWrapper = document.getElementById('mobileSearchWrapper');
+    if (mobileWrapper) {
+      mobileWrapper.classList.remove('show');
+    }
+  }
+});
+
+async function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+
+  // Create a clone of the content to manipulate
+  const contentWrapper = document.querySelector('.docs-content-wrapper');
+  const clonedContent = contentWrapper.cloneNode(true);
+
+  // Remove unwanted elements from clone
+  clonedContent.querySelector('.pdf-download-btn')?.remove();
+  clonedContent.querySelector('.page-navigation')?.remove();
+  clonedContent.querySelector('.related-topics-section')?.remove();
+  clonedContent.querySelector('.rating-section')?.remove();
+
+  // Remove video elements
+  const videos = clonedContent.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]');
+  videos.forEach(video => video.remove());
+
+  // Remove copy buttons from code blocks
+  const copyButtons = clonedContent.querySelectorAll('.copy-code-btn');
+  copyButtons.forEach(btn => btn.remove());
+
+  // Create temporary container for rendering with logo at top
+  const tempContainer = document.createElement('div');
+  tempContainer.style.position = 'absolute';
+  tempContainer.style.left = '-9999px';
+  tempContainer.style.top = '0';
+  tempContainer.style.width = '800px';
+  tempContainer.style.background = 'white';
+  tempContainer.style.padding = '50px 40px';
+  tempContainer.style.fontFamily = 'Arial, sans-serif';
+  tempContainer.style.color = '#000';
+
+  // Add logo at the top right with dark background
+  const logoContainer = document.createElement('div');
+  logoContainer.style.textAlign = 'right';
+  logoContainer.style.marginBottom = '20px';
+
+  const logoWrapper = document.createElement('div');
+  logoWrapper.style.display = 'inline-block';
+  logoWrapper.style.backgroundColor = '#1a1a1a';
+  logoWrapper.style.padding = '12px 20px';
+  logoWrapper.style.borderRadius = '8px';
+  logoWrapper.style.position = 'relative';
+
+  const logoImg = document.createElement('img');
+  logoImg.src = '/images/logo.png';
+  logoImg.style.height = '40px';
+  logoImg.style.width = 'auto';
+  logoImg.style.display = 'block';
+  logoImg.style.position = 'relative';
+  logoImg.style.zIndex = '10';
+
+  logoWrapper.appendChild(logoImg);
+  logoContainer.appendChild(logoWrapper);
+  tempContainer.appendChild(logoContainer);
+
+  // Override all text colors to dark gray - force important
+  const allElements = clonedContent.querySelectorAll('*');
+  allElements.forEach(el => {
+    el.style.setProperty('color', '#1a1a1a', 'important');
+  });
+
+  // Override specific elements that might have color
+  const headings = clonedContent.querySelectorAll('h1, h2, h3, h4, h5, h6');
+  headings.forEach(h => {
+    h.style.setProperty('color', '#1a1a1a', 'important');
+    h.style.setProperty('font-weight', 'bold', 'important');
+  });
+
+  const paragraphs = clonedContent.querySelectorAll('p, span, div, li, td, th, label, strong, b, em, i');
+  paragraphs.forEach(p => {
+    p.style.setProperty('color', '#2d2d2d', 'important');
+  });
+
+  const links = clonedContent.querySelectorAll('a');
+  links.forEach(a => {
+    a.style.setProperty('color', '#0066cc', 'important');
+  });
+
+  const codeBlocks = clonedContent.querySelectorAll('code, pre');
+  codeBlocks.forEach(code => {
+    code.style.setProperty('color', '#1a1a1a', 'important');
+    code.style.setProperty('background-color', '#f5f5f5', 'important');
+  });
+
+  // Force all nav, breadcrumb elements to dark gray
+  const navElements = clonedContent.querySelectorAll('nav, nav *');
+  navElements.forEach(nav => {
+    nav.style.setProperty('color', '#2d2d2d', 'important');
+  });
+
+  tempContainer.appendChild(clonedContent);
+  document.body.appendChild(tempContainer);
+
+  try {
+    // Render content to canvas with high quality
+    const canvas = await html2canvas(tempContainer, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      imageTimeout: 0,
+      removeContainer: true
+    });
+
+    // Create PDF with margins
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgWidth = 210; // A4 width in mm
+    const pageHeight = 297; // A4 height in mm
+    const marginTop = 10; // Top margin in mm
+    const marginBottom = 10; // Bottom margin in mm
+    const contentHeight = pageHeight - marginTop - marginBottom;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = marginTop;
+
+    // Convert to PNG for excellent quality
+    const imgData = canvas.toDataURL('image/png');
+
+    // Add first page with top margin
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= contentHeight;
+
+    // Add remaining pages with margins
+    while (heightLeft > 0) {
+      position = marginTop - (imgHeight - heightLeft);
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= contentHeight;
+    }
+
+    // Save PDF
+    const filename = '<%= concept.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() %>.pdf';
+    pdf.save(filename);
+
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
+  } finally {
+    // Clean up
+    document.body.removeChild(tempContainer);
+  }
+}
+
+// Add copy buttons to all code blocks
+document.addEventListener('DOMContentLoaded', function() {
+  // Add copy button to <pre> blocks
+  document.querySelectorAll('.documentation-content pre').forEach(function(preBlock) {
+    const button = document.createElement('button');
+    button.className = 'copy-code-btn';
+    button.innerHTML = `
+      <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <span>Copy</span>
+    `;
+
+    button.addEventListener('click', function() {
+      const code = preBlock.querySelector('code') || preBlock;
+      const text = code.textContent;
+
+      navigator.clipboard.writeText(text).then(function() {
+        button.innerHTML = `
+          <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Copied!</span>
+        `;
+        button.classList.add('copied');
+
+        setTimeout(function() {
+          button.innerHTML = `
+            <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy</span>
+          `;
+          button.classList.remove('copied');
+        }, 2000);
+      }).catch(function(err) {
+        console.error('Failed to copy:', err);
+      });
+    });
+
+    preBlock.style.position = 'relative';
+    preBlock.appendChild(button);
+  });
+
+  // Add copy button to inline <code> blocks (not inside <pre>)
+  document.querySelectorAll('.documentation-content code:not(pre code)').forEach(function(codeBlock) {
+    // Only add if code is substantial (more than 10 characters)
+    if (codeBlock.textContent.length > 10) {
+      const button = document.createElement('button');
+      button.className = 'copy-code-btn';
+      button.style.position = 'absolute';
+      button.style.top = '-2px';
+      button.style.right = '-2px';
+      button.innerHTML = `
+        <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      `;
+
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const text = codeBlock.textContent;
+
+        navigator.clipboard.writeText(text).then(function() {
+          button.innerHTML = `
+            <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          `;
+          button.classList.add('copied');
+
+          setTimeout(function() {
+            button.innerHTML = `
+              <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            `;
+            button.classList.remove('copied');
+          }, 2000);
+        }).catch(function(err) {
+          console.error('Failed to copy:', err);
+        });
+      });
+
+      codeBlock.style.position = 'relative';
+      codeBlock.style.paddingRight = '35px';
+      codeBlock.appendChild(button);
+    }
+  });
+});
+</script>

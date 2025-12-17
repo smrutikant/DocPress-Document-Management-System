@@ -1,0 +1,133 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+    <h1>Create New Concept</h1>
+
+    <form action="/admin/concepts/create" method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="title">Title *</label>
+        <input type="text" id="title" name="title" required>
+      </div>
+
+      <div class="form-group">
+        <label for="topicId">Topic *</label>
+        <select id="topicId" name="topicId" required <%= selectedTopicId ? 'disabled' : '' %>>
+          <option value="">Select a topic</option>
+          <% topics.forEach(topic => { %>
+            <option value="<%= topic.id %>" <%= selectedTopicId === topic.id ? 'selected' : '' %>><%= topic.subject.title %> / <%= topic.title %></option>
+          <% }); %>
+        </select>
+        <% if (selectedTopicId) { %>
+          <input type="hidden" name="topicId" value="<%= selectedTopicId %>">
+          <small style="color: var(--text-secondary);">Topic is pre-selected and cannot be changed</small>
+        <% } %>
+      </div>
+
+      <div class="form-group">
+        <label for="coverImage">Cover Image</label>
+        <input type="file" id="coverImage" name="coverImage" accept="image/*" onchange="previewCoverImage(this)">
+        <div id="imagePreview" style="display: none; margin-top: 16px;">
+          <p style="margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Preview:</p>
+          <img id="previewImg" src="" alt="Preview" style="width: 250px; height: auto; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="displayOrder">Display Order</label>
+        <input type="number" id="displayOrder" name="displayOrder" value="0">
+      </div>
+
+      <div class="form-group">
+        <label>Upload HTML/Markdown File (optional)</label>
+        <input type="file" id="fileUpload" accept=".html,.md,.markdown" onchange="uploadFile(this, 'editor')">
+        <small style="color: var(--text-secondary);">Upload an HTML or Markdown file to import content</small>
+      </div>
+
+      <div class="form-group">
+        <label for="content">Content</label>
+        <div id="editor" style="height: 400px;"></div>
+        <input type="hidden" id="content" name="content">
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="isPublished" checked>
+          Publish immediately
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Create Concept</button>
+      <a href="/admin/concepts" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+
+<%- include('../../partials/footer') %>
+
+<script>
+(function() {
+  console.log('Script running - Quill library available:', typeof Quill !== 'undefined');
+  console.log('Editor element exists:', !!document.getElementById('editor'));
+
+  // Initialize Quill editor after DOM and Quill are loaded
+  if (typeof Quill !== 'undefined') {
+    window.quillEditor = new Quill('#editor', {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'script': 'sub'}, { 'script': 'super' }],
+          [{ 'indent': '-1'}, { 'indent': '+1' }],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'align': [] }],
+          ['link', 'image'],
+          ['clean']
+        ]
+      }
+    });
+
+    console.log('✅ Quill editor initialized:', !!window.quillEditor);
+
+    // Save content on form submit
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        console.log('Form submitting...');
+        const contentHtml = window.quillEditor.root.innerHTML;
+        const hiddenField = document.getElementById('content');
+        hiddenField.value = contentHtml;
+        console.log('✅ Content saved to hidden field, length:', contentHtml.length);
+        console.log('Hidden field value length:', hiddenField.value.length);
+      });
+      console.log('✅ Form submit listener attached');
+    }
+  } else {
+    console.error('❌ Quill library not loaded!');
+  }
+})();
+
+// Preview cover image
+function previewCoverImage(input) {
+  const preview = document.getElementById('imagePreview');
+  const previewImg = document.getElementById('previewImg');
+
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      previewImg.src = e.target.result;
+      preview.style.display = 'block';
+    };
+
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    preview.style.display = 'none';
+  }
+}
+</script>

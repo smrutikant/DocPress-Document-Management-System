@@ -1,0 +1,110 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1>Manage Concepts</h1>
+      <a href="/admin/concepts/create" class="btn btn-primary">Create New Concept</a>
+    </div>
+
+    <% if (concepts.length > 0) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Topic</th>
+            <th>Subject</th>
+            <th>Order</th>
+            <th>Published</th>
+            <th>Last Revised</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% concepts.forEach(concept => { %>
+            <tr>
+              <td><%= concept.title %></td>
+              <td><%= concept.topic.title %></td>
+              <td><%= concept.topic.subject.title %></td>
+              <td><%= concept.displayOrder %></td>
+              <td><%= concept.isPublished ? 'Yes' : 'No' %></td>
+              <td><%= concept.lastRevisedOn ? new Date(concept.lastRevisedOn).toLocaleDateString() : 'Never' %></td>
+              <td>
+                <a href="/admin/concepts/edit/<%= concept.id %>" class="btn btn-secondary">Edit</a>
+                <button type="button" class="btn btn-primary" onclick="openMoveModal('<%= concept.id %>', '<%= concept.title %>', '<%= concept.topicId %>')">Move</button>
+                <form action="/admin/concepts/delete/<%= concept.id %>" method="POST" style="display: inline;" onsubmit="return confirmDelete();">
+                  <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <p>No concepts found. <a href="/admin/concepts/create">Create one now</a></p>
+    <% } %>
+  </div>
+</div>
+
+<!-- Move Concept Modal -->
+<div id="moveModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+  <div style="background-color: var(--bg-primary); margin: 10% auto; padding: 30px; border-radius: 8px; width: 500px; max-width: 90%;">
+    <h2 style="margin-top: 0;">Move Concept</h2>
+    <form id="moveConceptForm" method="POST">
+      <input type="hidden" id="moveConceptId" name="conceptId">
+
+      <div class="form-group">
+        <p>Moving: <strong id="conceptTitleDisplay"></strong></p>
+      </div>
+
+      <div class="form-group">
+        <label for="newTopicId">Select New Topic *</label>
+        <select id="newTopicId" name="newTopicId" required style="width: 100%; padding: 8px;">
+          <option value="">Select a topic</option>
+          <% if (locals.topics) { %>
+            <% topics.forEach(topic => { %>
+              <option value="<%= topic.id %>"><%= topic.subject.title %> / <%= topic.title %></option>
+            <% }); %>
+          <% } %>
+        </select>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <button type="submit" class="btn btn-primary">Move Concept</button>
+        <button type="button" class="btn btn-secondary" onclick="closeMoveModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openMoveModal(conceptId, conceptTitle, currentTopicId) {
+  document.getElementById('moveConceptId').value = conceptId;
+  document.getElementById('conceptTitleDisplay').textContent = conceptTitle;
+  document.getElementById('newTopicId').value = '';
+  document.getElementById('moveConceptForm').action = '/admin/concepts/move/' + conceptId;
+  document.getElementById('moveModal').style.display = 'block';
+
+  // Disable current topic in dropdown
+  const select = document.getElementById('newTopicId');
+  Array.from(select.options).forEach(option => {
+    option.disabled = option.value === currentTopicId;
+  });
+}
+
+function closeMoveModal() {
+  document.getElementById('moveModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('moveModal');
+  if (event.target === modal) {
+    closeMoveModal();
+  }
+}
+</script>
+
+<%- include('../../partials/footer') %>

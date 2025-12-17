@@ -1,0 +1,61 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+  <!-- replaced above -->
+    <h1>Edit Topic</h1>
+
+    <form action="/admin/topics/edit/<%= topic.id %>" method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="title">Title *</label>
+        <input type="text" id="title" name="title" value="<%= topic.title %>" required>
+      </div>
+
+      <div class="form-group">
+        <label for="subjectId">Subject *</label>
+        <select id="subjectId" name="subjectId" required>
+          <% subjects.forEach(subject => { %>
+            <option value="<%= subject.id %>" <%= subject.id === topic.subjectId ? 'selected' : '' %>><%= subject.title %></option>
+          <% }); %>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4"><%= topic.description || '' %></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="coverImage">Cover Image</label>
+        <% if (topic.coverImage) { %>
+          <% const imagePath = topic.coverImage.startsWith('/') ? topic.coverImage : '/' + topic.coverImage; %>
+          <div style="margin-bottom: 16px;">
+            <p style="margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Current Image:</p>
+            <img src="<%= imagePath %>" alt="<%= topic.title %>" style="width: 250px; height: auto; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          </div>
+        <% } %>
+        <input type="file" id="coverImage" name="coverImage" accept="image/*">
+        <small style="color: var(--text-secondary);">Upload a new image to replace the current one</small>
+      </div>
+
+      <div class="form-group">
+        <label for="displayOrder">Display Order</label>
+        <input type="number" id="displayOrder" name="displayOrder" value="<%= topic.displayOrder %>">
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="isPublished" <%= topic.isPublished ? 'checked' : '' %>>
+          Published
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Update Topic</button>
+      <a href="/admin/topics" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+
+<%- include('../../partials/footer') %>

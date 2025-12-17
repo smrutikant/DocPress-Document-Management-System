@@ -1,0 +1,44 @@
+<aside class="admin-sidebar">
+  <div class="sidebar-header">
+    <a href="/admin/dashboard" class="logo">
+      <img src="/images/logo.png" alt="DocPress Logo" style="height: 60px;">
+    </a>
+    <p class="sidebar-subtitle">Admin Panel</p>
+  </div>
+
+  <h3>Dashboard</h3>
+  <ul>
+    <li><a href="/admin/dashboard" class="<%= currentPath === '/admin/dashboard' ? 'active' : '' %>">
+      <span class="sidebar-icon">📊</span>
+      Overview
+    </a></li>
+  </ul>
+
+  <h3>Content</h3>
+  <ul>
+    <li><a href="/admin/subjects" class="<%= currentPath.startsWith('/admin/subjects') ? 'active' : '' %>">
+      <span class="sidebar-icon">📚</span>
+      Subjects
+    </a></li>
+    <li><a href="/admin/topics" class="<%= currentPath.startsWith('/admin/topics') ? 'active' : '' %>">
+      <span class="sidebar-icon">📖</span>
+      Topics
+    </a></li>
+    <li><a href="/admin/concepts" class="<%= currentPath.startsWith('/admin/concepts') ? 'active' : '' %>">
+      <span class="sidebar-icon">📄</span>
+      Concepts
+    </a></li>
+  </ul>
+
+  <h3>Account</h3>
+  <ul>
+    <li><a href="#" class="no-link">
+      <span class="sidebar-icon">👤</span>
+      <%= user.username %>
+    </a></li>
+    <li><a href="/logout">
+      <span class="sidebar-icon">🚪</span>
+      Logout
+    </a></li>
+  </ul>
+</aside>
