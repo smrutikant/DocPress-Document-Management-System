@@ -250,7 +250,7 @@ exports.viewConcept = async (req, res) => {
       include: [{
         model: User,
         as: 'user',
-        attributes: ['username']
+        attributes: ['username', 'profilePicture']
       }],
       order: [['createdAt', 'DESC']]
     });
