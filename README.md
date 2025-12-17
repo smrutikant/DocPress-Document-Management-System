@@ -141,7 +141,13 @@ docpress/
    ```
    Follow the prompts to create your first admin user.
 
-7. **Run the application**
+7. **(Optional) Seed sample data**
+   ```bash
+   npm run seed
+   ```
+   This will populate the database with sample subjects, topics, and concepts for testing.
+
+8. **Run the application**
    ```bash
    # Development mode with auto-reload
    npm run dev
@@ -150,7 +156,7 @@ docpress/
    npm start
    ```
 
-8. **Access the application**
+9. **Access the application**
    - Open your browser and go to `http://localhost:3000`
    - Login with your admin credentials
 
@@ -228,6 +234,9 @@ npm run init-db
 
 # Create an admin user (interactive)
 npm run create-admin
+
+# Seed sample data (for testing/development)
+npm run seed
 
 # Reset databases (WARNING: Deletes all data!)
 npm run reset-db
