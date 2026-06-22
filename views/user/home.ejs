@@ -518,8 +518,8 @@
                 <a href="/search" class="nav-link">Search</a>
                 <% if (locals.user) { %>
                 <a href="/logout" class="btn btn-secondary">Logout</a>
-                <% if (locals.user.role === 'admin') { %>
-                <a href="/admin/dashboard" class="btn btn-primary">Admin</a>
+                <% if (locals.user.canAccessAdminPanel) { %>
+                <a href="/admin/dashboard" class="btn btn-primary">Admin Panel</a>
                 <% } %>
                 <% } else { %>
                 <a href="/login" class="btn btn-secondary">Sign In</a>

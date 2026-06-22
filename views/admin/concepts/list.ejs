@@ -9,41 +9,76 @@
       <a href="/admin/concepts/create" class="btn btn-primary">Create New Concept</a>
     </div>
 
-    <% if (concepts.length > 0) { %>
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Topic</th>
-            <th>Subject</th>
-            <th>Order</th>
-            <th>Published</th>
-            <th>Last Revised</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% concepts.forEach(concept => { %>
-            <tr>
-              <td><%= concept.title %></td>
-              <td><%= concept.topic.title %></td>
-              <td><%= concept.topic.subject.title %></td>
-              <td><%= concept.displayOrder %></td>
-              <td><%= concept.isPublished ? 'Yes' : 'No' %></td>
-              <td><%= concept.lastRevisedOn ? new Date(concept.lastRevisedOn).toLocaleDateString() : 'Never' %></td>
-              <td>
-                <a href="/admin/concepts/edit/<%= concept.id %>" class="btn btn-secondary">Edit</a>
-                <button type="button" class="btn btn-primary" onclick="openMoveModal('<%= concept.id %>', '<%= concept.title %>', '<%= concept.topicId %>')">Move</button>
-                <form action="/admin/concepts/delete/<%= concept.id %>" method="POST" style="display: inline;" onsubmit="return confirmDelete();">
-                  <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-              </td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
+    <% if (subjects.length > 0) { %>
+      <% subjects.forEach(subject => { %>
+        <div class="subject-group" style="margin-bottom: 30px;">
+          <div class="subject-header" style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleSubject('<%= subject.id %>')">
+            <h2 style="margin: 0; font-size: 1.5rem;">
+              <span class="toggle-icon" id="subject-icon-<%= subject.id %>">▶</span>
+              <%= subject.title %>
+            </h2>
+            <span style="color: var(--text-secondary); font-size: 0.9rem;"><%= subject.topics.length %> topic(s)</span>
+          </div>
+
+          <div id="subject-content-<%= subject.id %>" class="subject-content" style="display: none; margin-top: 10px; padding-left: 20px;">
+            <% if (subject.topics.length > 0) { %>
+              <% subject.topics.forEach(topic => { %>
+                <div class="topic-group" style="margin-bottom: 20px; border-left: 3px solid var(--border-color); padding-left: 15px;">
+                  <div class="topic-header" style="cursor: pointer; padding: 10px; background: var(--bg-primary); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;" onclick="toggleTopic('<%= topic.id %>')">
+                    <h3 style="margin: 0; font-size: 1.2rem;">
+                      <span class="toggle-icon" id="topic-icon-<%= topic.id %>">▶</span>
+                      <%= topic.title %>
+                    </h3>
+                    <div>
+                      <span style="color: var(--text-secondary); font-size: 0.85rem; margin-right: 15px;"><%= topic.concepts.length %> concept(s)</span>
+                      <a href="/admin/concepts/create?topicId=<%= topic.id %>" class="btn btn-primary" style="font-size: 0.85rem; padding: 6px 12px;">Add Concept</a>
+                    </div>
+                  </div>
+
+                  <div id="topic-content-<%= topic.id %>" class="topic-content" style="display: none; margin-top: 10px;">
+                    <% if (topic.concepts.length > 0) { %>
+                      <table style="width: 100%;">
+                        <thead>
+                          <tr>
+                            <th>Title</th>
+                            <th>Order</th>
+                            <th>Published</th>
+                            <th>Last Revised</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <% topic.concepts.forEach(concept => { %>
+                            <tr>
+                              <td><%= concept.title %></td>
+                              <td><%= concept.displayOrder %></td>
+                              <td><%= concept.isPublished ? 'Yes' : 'No' %></td>
+                              <td><%= concept.lastRevisedOn ? new Date(concept.lastRevisedOn).toLocaleDateString() : 'Never' %></td>
+                              <td>
+                                <a href="/admin/concepts/edit/<%= concept.id %>" class="btn btn-secondary" style="font-size: 0.85rem; padding: 4px 8px;">Edit</a>
+                                <button type="button" class="btn btn-primary" style="font-size: 0.85rem; padding: 4px 8px;" onclick="openMoveModal('<%= concept.id %>', '<%= concept.title %>', '<%= concept.topicId %>')">Move</button>
+                                <form action="/admin/concepts/delete/<%= concept.id %>" method="POST" style="display: inline;" onsubmit="return confirmDelete();">
+                                  <button type="submit" class="btn btn-danger" style="font-size: 0.85rem; padding: 4px 8px;">Delete</button>
+                                </form>
+                              </td>
+                            </tr>
+                          <% }); %>
+                        </tbody>
+                      </table>
+                    <% } else { %>
+                      <p style="padding: 15px; color: var(--text-secondary); font-style: italic;">No concepts in this topic. <a href="/admin/concepts/create?topicId=<%= topic.id %>">Create one now</a></p>
+                    <% } %>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <p style="padding: 15px; color: var(--text-secondary); font-style: italic;">No topics in this subject yet.</p>
+            <% } %>
+          </div>
+        </div>
+      <% }); %>
     <% } else { %>
-      <p>No concepts found. <a href="/admin/concepts/create">Create one now</a></p>
+      <p>No subjects found. Please create subjects and topics first.</p>
     <% } %>
   </div>
 </div>
@@ -80,6 +115,32 @@
 </div>
 
 <script>
+function toggleSubject(subjectId) {
+  const content = document.getElementById('subject-content-' + subjectId);
+  const icon = document.getElementById('subject-icon-' + subjectId);
+
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    icon.textContent = '▼';
+  } else {
+    content.style.display = 'none';
+    icon.textContent = '▶';
+  }
+}
+
+function toggleTopic(topicId) {
+  const content = document.getElementById('topic-content-' + topicId);
+  const icon = document.getElementById('topic-icon-' + topicId);
+
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    icon.textContent = '▼';
+  } else {
+    content.style.display = 'none';
+    icon.textContent = '▶';
+  }
+}
+
 function openMoveModal(conceptId, conceptTitle, currentTopicId) {
   document.getElementById('moveConceptId').value = conceptId;
   document.getElementById('conceptTitleDisplay').textContent = conceptTitle;

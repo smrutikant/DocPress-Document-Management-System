@@ -3,10 +3,18 @@
 <div class="admin-layout">
   <%- include('../../partials/admin-sidebar') %>
 
-  <div class="admin-content" style="max-width: 1000px;">
-    <h1>Edit Concept</h1>
+  <div class="admin-content" style="max-width: 1400px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1>Edit Concept</h1>
+      <button type="button" id="togglePreview" class="btn btn-secondary">
+        <span id="previewBtnText">Show Preview</span>
+      </button>
+    </div>
 
-    <form action="/admin/concepts/edit/<%= concept.id %>" method="POST" enctype="multipart/form-data">
+    <div style="display: flex; gap: 20px;">
+      <!-- Editor Section -->
+      <div id="editorSection" style="flex: 1; transition: all 0.3s;">
+        <form action="/admin/concepts/edit/<%= concept.id %>" method="POST" enctype="multipart/form-data">
       <div class="form-group">
         <label for="title">Title *</label>
         <input type="text" id="title" name="title" value="<%= concept.title %>" required>
@@ -42,15 +50,59 @@
       </div>
 
       <div class="form-group">
-        <label>Upload HTML/Markdown File (optional)</label>
-        <input type="file" id="fileUpload" accept=".html,.md,.markdown" onchange="uploadFile(this, 'editor')">
-        <small style="color: var(--text-secondary);">Upload an HTML or Markdown file to replace content</small>
+        <label>Content Type</label>
+        <div style="margin-bottom: 16px;">
+          <label style="margin-right: 20px;">
+            <input type="radio" name="contentType" value="editor" <%= !content || content.contentType !== 'pdf' ? 'checked' : '' %> onchange="toggleContentTypeEdit()">
+            Rich Text Editor
+          </label>
+          <label>
+            <input type="radio" name="contentType" value="pdf" <%= content && content.contentType === 'pdf' ? 'checked' : '' %> onchange="toggleContentTypeEdit()">
+            Upload PDF
+          </label>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="content">Content</label>
-        <div id="editor" style="height: 400px;"></div>
-        <input type="hidden" id="content" name="content">
+      <div id="editorSectionEdit" style="<%= content && content.contentType === 'pdf' ? 'display: none;' : '' %>">
+        <div class="form-group">
+          <label>Upload HTML/Markdown File (optional)</label>
+          <input type="file" id="fileUpload" accept=".html,.md,.markdown" onchange="uploadFile(this, 'editor')">
+          <small style="color: var(--text-secondary);">Upload an HTML or Markdown file to replace content</small>
+        </div>
+
+        <div class="form-group">
+          <label for="content">Content</label>
+          <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+            <button type="button" class="btn btn-secondary" onclick="improveWithAI()" style="font-size: 0.9rem;">
+              ✨ Improve with AI
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="summarizeWithAI()" style="font-size: 0.9rem;">
+              📝 Summarize
+            </button>
+          </div>
+          <div id="editor" style="height: 400px;"></div>
+          <input type="hidden" id="content" name="content">
+        </div>
+      </div>
+
+      <div id="pdfSectionEdit" style="<%= content && content.contentType === 'pdf' ? '' : 'display: none;' %>">
+        <% if (content && content.contentType === 'pdf' && content.pdfUrl) { %>
+          <div style="margin-bottom: 16px;">
+            <p style="margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">Current PDF:</p>
+            <a href="<%= content.pdfUrl %>" target="_blank" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              View Current PDF
+            </a>
+          </div>
+        <% } %>
+        <div class="form-group">
+          <label for="pdfFile">Upload New PDF Document</label>
+          <input type="file" id="pdfFile" name="pdfFile" accept=".pdf">
+          <small style="color: var(--text-secondary);">Upload a new PDF file to replace the current one (max 50MB)</small>
+        </div>
       </div>
 
       <div class="form-group">
@@ -63,6 +115,36 @@
       <button type="submit" class="btn btn-primary">Update Concept</button>
       <a href="/admin/concepts" class="btn btn-secondary">Cancel</a>
     </form>
+      </div>
+
+      <!-- Preview Section -->
+      <div id="previewSection" style="display: none; flex: 1; border-left: 2px solid var(--border-color); padding-left: 20px; transition: all 0.3s;">
+        <div style="position: sticky; top: 20px;">
+          <h2 style="margin-bottom: 20px; font-size: 1.3rem; color: var(--text-secondary);">Preview</h2>
+          <div id="previewContainer" style="background: var(--bg-primary); padding: 30px; border-radius: 8px; border: 1px solid var(--border-color); max-height: 80vh; overflow-y: auto;">
+            <nav style="margin-bottom: 20px; font-size: 0.9rem; color: var(--text-secondary);">
+              <span style="color: var(--accent-color);"><%= concept.topic.subject.title %></span>
+              <span> › </span>
+              <span style="color: var(--accent-color);"><%= concept.topic.title %></span>
+              <span> › </span>
+              <span id="previewBreadcrumbTitle"><%= concept.title %></span>
+            </nav>
+
+            <h1 id="previewTitle" style="margin-bottom: 10px;"><%= concept.title %></h1>
+
+            <% if (concept.lastRevisedOn) { %>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 30px;">
+                Last revised on <%= new Date(concept.lastRevisedOn).toLocaleDateString() %>
+              </p>
+            <% } %>
+
+            <div id="previewContent" class="documentation-content">
+              <%- content.htmlContent || '' %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -94,7 +176,8 @@
     });
 
     // Load existing content - using JSON encoding to safely pass HTML through JavaScript
-    const existingContent = <%- content ? JSON.stringify(content) : '""' %>;
+    const contentData = <%- JSON.stringify(content) %>;
+    const existingContent = contentData.htmlContent || '';
 
     console.log('Raw content received from server, length:', existingContent.length);
     console.log('Content preview:', existingContent.substring(0, 200));
@@ -107,6 +190,11 @@
     }
 
     console.log('✅ Quill editor initialized:', !!window.quillEditor);
+
+    // Update preview when editor content changes
+    window.quillEditor.on('text-change', function() {
+      updatePreview();
+    });
 
     // Save content on form submit
     const form = document.querySelector('form');
@@ -124,5 +212,160 @@
   } else {
     console.error('❌ Quill library not loaded!');
   }
+
+  // Toggle between editor and PDF upload
+  window.toggleContentTypeEdit = function() {
+    const contentType = document.querySelector('input[name="contentType"]:checked').value;
+    const editorSectionEdit = document.getElementById('editorSectionEdit');
+    const pdfSectionEdit = document.getElementById('pdfSectionEdit');
+
+    if (contentType === 'pdf') {
+      editorSectionEdit.style.display = 'none';
+      pdfSectionEdit.style.display = 'block';
+    } else {
+      editorSectionEdit.style.display = 'block';
+      pdfSectionEdit.style.display = 'none';
+    }
+  };
+
+  // Toggle preview functionality
+  const toggleBtn = document.getElementById('togglePreview');
+  const previewSection = document.getElementById('previewSection');
+  const editorSection = document.getElementById('editorSection');
+  const previewBtnText = document.getElementById('previewBtnText');
+  let isPreviewVisible = false;
+
+  toggleBtn.addEventListener('click', function() {
+    isPreviewVisible = !isPreviewVisible;
+
+    if (isPreviewVisible) {
+      previewSection.style.display = 'block';
+      editorSection.style.flex = '1';
+      previewBtnText.textContent = 'Hide Preview';
+      toggleBtn.classList.remove('btn-secondary');
+      toggleBtn.classList.add('btn-primary');
+      updatePreview();
+    } else {
+      previewSection.style.display = 'none';
+      editorSection.style.flex = '1';
+      previewBtnText.textContent = 'Show Preview';
+      toggleBtn.classList.remove('btn-primary');
+      toggleBtn.classList.add('btn-secondary');
+    }
+  });
+
+  // Update preview with current title and content
+  function updatePreview() {
+    if (!isPreviewVisible) return;
+
+    const titleInput = document.getElementById('title');
+    const previewTitle = document.getElementById('previewTitle');
+    const previewBreadcrumb = document.getElementById('previewBreadcrumbTitle');
+    const previewContent = document.getElementById('previewContent');
+
+    // Update title
+    if (titleInput && previewTitle && previewBreadcrumb) {
+      previewTitle.textContent = titleInput.value || 'Untitled';
+      previewBreadcrumb.textContent = titleInput.value || 'Untitled';
+    }
+
+    // Update content
+    if (window.quillEditor && previewContent) {
+      const contentHtml = window.quillEditor.root.innerHTML;
+      previewContent.innerHTML = contentHtml;
+    }
+  }
+
+  // Update preview when title changes
+  const titleInput = document.getElementById('title');
+  if (titleInput) {
+    titleInput.addEventListener('input', updatePreview);
+  }
 })();
+
+// AI Improve Content
+async function improveWithAI() {
+  if (!window.quillEditor) {
+    showToast('Editor not initialized', 'error');
+    return;
+  }
+
+  const currentContent = window.quillEditor.root.innerHTML;
+  if (!currentContent || currentContent.trim() === '<p><br></p>') {
+    showToast('Please add some content first', 'error');
+    return;
+  }
+
+  const btn = event.target;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Improving...';
+
+  try {
+    const response = await fetch('/admin/ai-improve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: currentContent })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.improvedContent) {
+      window.quillEditor.root.innerHTML = data.improvedContent;
+      showToast('Content improved successfully!', 'success');
+    } else {
+      showToast(data.error || 'Failed to improve content', 'error');
+    }
+  } catch (error) {
+    console.error('AI improve error:', error);
+    showToast('Failed to improve content: ' + error.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+// AI Summarize Content
+async function summarizeWithAI() {
+  if (!window.quillEditor) {
+    showToast('Editor not initialized', 'error');
+    return;
+  }
+
+  const currentContent = window.quillEditor.root.innerHTML;
+  if (!currentContent || currentContent.trim() === '<p><br></p>') {
+    showToast('Please add some content first', 'error');
+    return;
+  }
+
+  const btn = event.target;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Summarizing...';
+
+  try {
+    const response = await fetch('/admin/ai-summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: currentContent })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.summary) {
+      // Insert summary at the beginning
+      const summaryHtml = `<blockquote><strong>Summary:</strong> ${data.summary}</blockquote>`;
+      window.quillEditor.root.innerHTML = summaryHtml + currentContent;
+      showToast('Summary added!', 'success');
+    } else {
+      showToast(data.error || 'Failed to generate summary', 'error');
+    }
+  } catch (error) {
+    console.error('AI summarize error:', error);
+    showToast('Failed to summarize: ' + error.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
 </script>

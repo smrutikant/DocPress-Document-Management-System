@@ -17,6 +17,7 @@ const { attachUserToViews } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/user');
+const teamRoutes = require('./routes/team');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -65,6 +66,7 @@ app.use(attachUserToViews);
 app.use('/', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/', userRoutes);
+app.use('/', teamRoutes);
 
 // 404 handler
 app.use((req, res) => {

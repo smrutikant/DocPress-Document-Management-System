@@ -14,6 +14,34 @@
     </a></li>
   </ul>
 
+  <% if (user.role === 'admin') { %>
+  <h3>Management</h3>
+  <ul>
+    <li><a href="/admin/teams" class="<%= currentPath.startsWith('/admin/teams') && !currentPath.startsWith('/admin/team-requests') ? 'active' : '' %>">
+      <span class="sidebar-icon">👥</span>
+      All Teams
+    </a></li>
+  </ul>
+  <% } %>
+
+  <% if (user.isTeamAdmin || user.role === 'admin') { %>
+  <h3>My Teams</h3>
+  <ul>
+    <li><a href="/admin/my-teams" class="<%= currentPath.startsWith('/admin/my-teams') ? 'active' : '' %>">
+      <span class="sidebar-icon">👥</span>
+      My Teams
+    </a></li>
+    <li><a href="/admin/pending-approvals" class="<%= currentPath.startsWith('/admin/pending-approvals') ? 'active' : '' %>">
+      <span class="sidebar-icon">✓</span>
+      Pending Approvals
+    </a></li>
+    <li><a href="/admin/team-requests" class="<%= currentPath.startsWith('/admin/team-requests') ? 'active' : '' %>">
+      <span class="sidebar-icon">📩</span>
+      Join Requests
+    </a></li>
+  </ul>
+  <% } %>
+
   <h3>Content</h3>
   <ul>
     <li><a href="/admin/subjects" class="<%= currentPath.startsWith('/admin/subjects') ? 'active' : '' %>">

@@ -1,0 +1,347 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1>Manage Team: <%= team.name %></h1>
+      <a href="/admin/my-teams" class="btn btn-secondary">Back to My Teams</a>
+    </div>
+
+    <div class="team-info-card">
+      <h3>Team Information</h3>
+      <p><strong>Name:</strong> <%= team.name %></p>
+      <% if (team.description) { %>
+        <p><strong>Description:</strong> <%= team.description %></p>
+      <% } %>
+      <p><strong>Status:</strong>
+        <span class="badge <%= team.isActive ? 'badge-success' : 'badge-danger' %>">
+          <%= team.isActive ? 'Active' : 'Inactive' %>
+        </span>
+      </p>
+    </div>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>Team Members</h2>
+
+    <div class="team-members-section">
+      <div class="members-grid">
+        <!-- Current Members -->
+        <div class="members-column">
+          <h3>Current Members (<%= members.length %>)</h3>
+          <div id="currentMembers" class="member-list">
+            <% if (members.length > 0) { %>
+              <% members.forEach(member => { %>
+                <div class="member-item" data-member-id="<%= member.id %>">
+                  <div class="member-info">
+                    <div class="member-avatar">
+                      <% if (member.user.profilePicture) { %>
+                        <img src="<%= member.user.profilePicture %>" alt="<%= member.user.username %>">
+                      <% } else { %>
+                        <div class="avatar-placeholder"><%= member.user.username.charAt(0).toUpperCase() %></div>
+                      <% } %>
+                    </div>
+                    <div class="member-details">
+                      <strong><%= member.user.username %></strong>
+                      <small><%= member.user.email %></small>
+                      <span class="member-role <%= member.role === 'admin' ? 'role-admin' : 'role-member' %>">
+                        <%= member.role %>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="member-actions">
+                    <select class="role-select" onchange="updateMemberRole('<%= member.id %>', this.value)">
+                      <option value="member" <%= member.role === 'member' ? 'selected' : '' %>>Member</option>
+                      <option value="admin" <%= member.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                    </select>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeMember('<%= member.id %>')">Remove</button>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <p class="empty-state">No members yet</p>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Available Users -->
+        <div class="members-column">
+          <h3>Available Users</h3>
+          <div id="availableUsers" class="member-list">
+            <% if (nonMembers.length > 0) { %>
+              <% nonMembers.forEach(user => { %>
+                <div class="member-item" data-user-id="<%= user.id %>">
+                  <div class="member-info">
+                    <div class="member-details">
+                      <strong><%= user.username %></strong>
+                      <small><%= user.email %></small>
+                    </div>
+                  </div>
+                  <div class="member-actions">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="addMember('<%= user.id %>')">Add</button>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <p class="empty-state">All users are members</p>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.team-info-card {
+  background: var(--bg-secondary);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.team-info-card h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+}
+
+.team-info-card p {
+  margin: 10px 0;
+  color: var(--text-primary);
+}
+
+.team-info-card strong {
+  color: var(--accent-color);
+}
+
+.team-members-section {
+  margin-top: 20px;
+}
+
+.members-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.members-column {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  background: var(--bg-secondary);
+}
+
+.members-column h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+}
+
+.member-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.member-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  border-color: var(--accent-color);
+  transform: translateX(4px);
+}
+
+.member-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #6c757d;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.member-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.member-details strong {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.member-details small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.member-role {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-top: 4px;
+}
+
+.role-admin {
+  background-color: var(--accent-color);
+  color: #000;
+}
+
+.role-member {
+  background-color: var(--accent-color);
+  color: #000;
+}
+
+.member-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.role-select {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.empty-state {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 20px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge-success {
+  background-color: var(--accent-color);
+  color: #000;
+}
+
+.badge-danger {
+  background-color: var(--accent-color);
+  color: #000;
+}
+</style>
+
+<script>
+async function addMember(userId) {
+  try {
+    const response = await fetch('/admin/teams/<%= team.id %>/members/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ userId, role: 'member' })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.message || 'Failed to add member');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to add member');
+  }
+}
+
+async function removeMember(memberId) {
+  if (!confirm('Are you sure you want to remove this member?')) return;
+
+  try {
+    const response = await fetch(`/admin/teams/<%= team.id %>/members/${memberId}/remove`, {
+      method: 'POST'
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.message || 'Failed to remove member');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to remove member');
+  }
+}
+
+async function updateMemberRole(memberId, role) {
+  try {
+    const response = await fetch(`/admin/teams/<%= team.id %>/members/${memberId}/role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.message || 'Failed to update role');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to update role');
+  }
+}
+</script>
+
+<%- include('../../partials/footer') %>

@@ -26,6 +26,9 @@ db.sequelize = sequelize;
 
 // Import models
 db.User = require('./User')(sequelize);
+db.Team = require('./Team')(sequelize);
+db.TeamMember = require('./TeamMember')(sequelize);
+db.TeamRequest = require('./TeamRequest')(sequelize);
 db.Subject = require('./Subject')(sequelize);
 db.Topic = require('./Topic')(sequelize);
 db.Concept = require('./Concept')(sequelize);

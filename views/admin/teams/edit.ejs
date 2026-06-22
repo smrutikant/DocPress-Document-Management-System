@@ -1,0 +1,262 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+    <h1>Edit Team: <%= team.name %></h1>
+
+    <form action="/admin/teams/edit/<%= team.id %>" method="POST">
+      <div class="form-group">
+        <label for="name">Team Name *</label>
+        <input type="text" id="name" name="name" value="<%= team.name %>" required>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4"><%= team.description || '' %></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="isActive">
+          <input type="checkbox" id="isActive" name="isActive" <%= team.isActive ? 'checked' : '' %>>
+          Active
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Update Team</button>
+        <a href="/admin/teams" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+
+    <hr style="margin: 40px 0;">
+
+    <h2>Team Members</h2>
+
+    <div class="team-members-section">
+      <div class="members-grid">
+        <!-- Current Members -->
+        <div class="members-column">
+          <h3>Current Members (<%= members.length %>)</h3>
+          <div id="currentMembers" class="member-list">
+            <% if (members.length > 0) { %>
+              <% members.forEach(member => { %>
+                <div class="member-item" data-member-id="<%= member.id %>">
+                  <div class="member-info">
+                    <strong><%= member.user.username %></strong>
+                    <span class="member-role <%= member.role === 'admin' ? 'role-admin' : 'role-member' %>">
+                      <%= member.role %>
+                    </span>
+                  </div>
+                  <div class="member-actions">
+                    <select class="role-select" onchange="updateMemberRole('<%= member.id %>', this.value)">
+                      <option value="member" <%= member.role === 'member' ? 'selected' : '' %>>Member</option>
+                      <option value="admin" <%= member.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                    </select>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeMember('<%= member.id %>')">Remove</button>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <p class="empty-state">No members yet</p>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Available Users -->
+        <div class="members-column">
+          <h3>Available Users</h3>
+          <div id="availableUsers" class="member-list">
+            <% if (nonMembers.length > 0) { %>
+              <% nonMembers.forEach(user => { %>
+                <div class="member-item" data-user-id="<%= user.id %>">
+                  <div class="member-info">
+                    <strong><%= user.username %></strong>
+                    <small><%= user.email %></small>
+                  </div>
+                  <div class="member-actions">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="addMember('<%= user.id %>')">Add</button>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <p class="empty-state">All users are members</p>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.team-members-section {
+  margin-top: 20px;
+}
+
+.members-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.members-column {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  background: #f9f9f9;
+}
+
+.members-column h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.member-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  transition: box-shadow 0.2s;
+}
+
+.member-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.member-info small {
+  color: #666;
+  font-size: 12px;
+}
+
+.member-role {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.role-admin {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.role-member {
+  background-color: #6c757d;
+  color: white;
+}
+
+.member-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.role-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.empty-state {
+  color: #999;
+  text-align: center;
+  padding: 20px;
+}
+</style>
+
+<script>
+async function addMember(userId) {
+  try {
+    const response = await fetch('/admin/teams/<%= team.id %>/members/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ userId, role: 'member' })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.message || 'Failed to add member');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to add member');
+  }
+}
+
+async function removeMember(memberId) {
+  if (!confirm('Are you sure you want to remove this member?')) return;
+
+  try {
+    const response = await fetch(`/admin/teams/<%= team.id %>/members/${memberId}/remove`, {
+      method: 'POST'
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.message || 'Failed to remove member');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to remove member');
+  }
+}
+
+async function updateMemberRole(memberId, role) {
+  try {
+    const response = await fetch(`/admin/teams/<%= team.id %>/members/${memberId}/role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.message || 'Failed to update role');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to update role');
+  }
+}
+</script>
+
+<%- include('../../partials/footer') %>

@@ -24,16 +24,35 @@ const contentSchema = new mongoose.Schema({
   },
   htmlContent: {
     type: String,
-    required: true
+    required: function() {
+      return this.contentType !== 'pdf';
+    },
+    default: ''
   },
   rawContent: {
     type: String,
-    required: true
+    required: function() {
+      return this.contentType !== 'pdf';
+    },
+    default: ''
   },
   contentType: {
     type: String,
-    enum: ['html', 'markdown', 'quill'],
+    enum: ['html', 'markdown', 'quill', 'pdf'],
     default: 'quill'
+  },
+  // For PDF content type
+  pdfUrl: {
+    type: String,
+    required: function() {
+      return this.contentType === 'pdf';
+    }
+  },
+  pdfFilename: {
+    type: String,
+    required: function() {
+      return this.contentType === 'pdf';
+    }
   },
   revisions: [revisionSchema],
   createdBy: {

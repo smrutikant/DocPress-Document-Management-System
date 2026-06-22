@@ -41,15 +41,47 @@
       </div>
 
       <div class="form-group">
-        <label>Upload HTML/Markdown File (optional)</label>
-        <input type="file" id="fileUpload" accept=".html,.md,.markdown" onchange="uploadFile(this, 'editor')">
-        <small style="color: var(--text-secondary);">Upload an HTML or Markdown file to import content</small>
+        <label>Content Type</label>
+        <div style="margin-bottom: 16px;">
+          <label style="margin-right: 20px;">
+            <input type="radio" name="contentType" value="editor" checked onchange="toggleContentType()">
+            Rich Text Editor
+          </label>
+          <label>
+            <input type="radio" name="contentType" value="pdf" onchange="toggleContentType()">
+            Upload PDF
+          </label>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="content">Content</label>
-        <div id="editor" style="height: 400px;"></div>
-        <input type="hidden" id="content" name="content">
+      <div id="editorSection">
+        <div class="form-group">
+          <label>Upload HTML/Markdown File (optional)</label>
+          <input type="file" id="fileUpload" accept=".html,.md,.markdown" onchange="uploadFile(this, 'editor')">
+          <small style="color: var(--text-secondary);">Upload an HTML or Markdown file to import content</small>
+        </div>
+
+        <div class="form-group">
+          <label for="content">Content</label>
+          <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+            <button type="button" class="btn btn-secondary" onclick="improveWithAI()" style="font-size: 0.9rem;">
+              ✨ Improve with AI
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="summarizeWithAI()" style="font-size: 0.9rem;">
+              📝 Summarize
+            </button>
+          </div>
+          <div id="editor" style="height: 400px;"></div>
+          <input type="hidden" id="content" name="content">
+        </div>
+      </div>
+
+      <div id="pdfSection" style="display: none;">
+        <div class="form-group">
+          <label for="pdfFile">Upload PDF Document *</label>
+          <input type="file" id="pdfFile" name="pdfFile" accept=".pdf">
+          <small style="color: var(--text-secondary);">Upload a PDF file (max 50MB). This will be displayed to users in a PDF viewer.</small>
+        </div>
       </div>
 
       <div class="form-group">
@@ -112,6 +144,21 @@
   }
 })();
 
+// Toggle between editor and PDF upload
+function toggleContentType() {
+  const contentType = document.querySelector('input[name="contentType"]:checked').value;
+  const editorSection = document.getElementById('editorSection');
+  const pdfSection = document.getElementById('pdfSection');
+
+  if (contentType === 'pdf') {
+    editorSection.style.display = 'none';
+    pdfSection.style.display = 'block';
+  } else {
+    editorSection.style.display = 'block';
+    pdfSection.style.display = 'none';
+  }
+}
+
 // Preview cover image
 function previewCoverImage(input) {
   const preview = document.getElementById('imagePreview');
@@ -128,6 +175,92 @@ function previewCoverImage(input) {
     reader.readAsDataURL(input.files[0]);
   } else {
     preview.style.display = 'none';
+  }
+}
+
+// AI Improve Content
+async function improveWithAI() {
+  if (!window.quillEditor) {
+    showToast('Editor not initialized', 'error');
+    return;
+  }
+
+  const currentContent = window.quillEditor.root.innerHTML;
+  if (!currentContent || currentContent.trim() === '<p><br></p>') {
+    showToast('Please add some content first', 'error');
+    return;
+  }
+
+  const btn = event.target;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Improving...';
+
+  try {
+    const response = await fetch('/admin/ai-improve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: currentContent })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.improvedContent) {
+      window.quillEditor.root.innerHTML = data.improvedContent;
+      showToast('Content improved successfully!', 'success');
+    } else {
+      showToast(data.error || 'Failed to improve content', 'error');
+    }
+  } catch (error) {
+    console.error('AI improve error:', error);
+    showToast('Failed to improve content: ' + error.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+// AI Summarize Content
+async function summarizeWithAI() {
+  if (!window.quillEditor) {
+    showToast('Editor not initialized', 'error');
+    return;
+  }
+
+  const currentContent = window.quillEditor.root.innerHTML;
+  if (!currentContent || currentContent.trim() === '<p><br></p>') {
+    showToast('Please add some content first', 'error');
+    return;
+  }
+
+  const btn = event.target;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Summarizing...';
+
+  try {
+    const response = await fetch('/admin/ai-summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: currentContent })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.summary) {
+      // Insert summary at the beginning
+      const summaryHtml = `<blockquote><strong>Summary:</strong> ${data.summary}</blockquote>`;
+      window.quillEditor.root.innerHTML = summaryHtml + currentContent;
+      showToast('Summary added!', 'success');
+    } else {
+      showToast(data.error || 'Failed to generate summary', 'error');
+    }
+  } catch (error) {
+    console.error('AI summarize error:', error);
+    showToast('Failed to summarize: ' + error.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
   }
 }
 </script>

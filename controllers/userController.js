@@ -262,6 +262,8 @@ exports.viewConcept = async (req, res) => {
       title: concept.title,
       concept,
       content: content ? content.htmlContent : '',
+      contentType: content ? content.contentType : 'quill',
+      pdfUrl: content && content.contentType === 'pdf' ? content.pdfUrl : null,
       previousConcept,
       nextConcept,
       sidebarTopics,

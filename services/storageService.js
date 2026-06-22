@@ -39,6 +39,23 @@ const localStorage = multer.diskStorage({
   }
 });
 
+// Local storage for PDF content (uses CONTENT_STORAGE_TYPE env variable)
+const getContentStorageType = () => process.env.CONTENT_STORAGE_TYPE || process.env.STORAGE_TYPE || 'local';
+
+const pdfLocalStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/content';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'pdf-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
 // S3 storage configuration
 const s3Storage = multerS3({
   s3: s3,
@@ -50,6 +67,23 @@ const s3Storage = multerS3({
   key: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+// S3 storage for PDF content
+const pdfS3Storage = multerS3({
+  s3: s3,
+  bucket: storageConfig.s3.bucket,
+  acl: 'public-read',
+  contentType: (req, file, cb) => {
+    cb(null, 'application/pdf');
+  },
+  metadata: (req, file, cb) => {
+    cb(null, { fieldName: file.fieldname });
+  },
+  key: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'content/pdf-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
@@ -78,6 +112,19 @@ const documentFilter = (req, file, cb) => {
   }
 };
 
+// File filter for PDF documents
+const pdfFilter = (req, file, cb) => {
+  const allowedTypes = /pdf/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = file.mimetype === 'application/pdf';
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only PDF files are allowed!'));
+  }
+};
+
 // Create upload middleware based on storage type
 const createUploadMiddleware = (fileFilter) => {
   const storage = storageConfig.type === 's3' ? s3Storage : localStorage;
@@ -102,11 +149,21 @@ const uploadDocumentMemory = multer({
   }
 });
 
+// PDF upload middleware (uses CONTENT_STORAGE_TYPE)
+const uploadPDF = multer({
+  storage: getContentStorageType() === 's3' ? pdfS3Storage : pdfLocalStorage,
+  fileFilter: pdfFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB limit for PDFs
+  }
+});
+
 // Export upload middlewares
 module.exports = {
   uploadImage: createUploadMiddleware(imageFilter),
   uploadDocument: createUploadMiddleware(documentFilter),
   uploadDocumentMemory: uploadDocumentMemory, // For HTML/MD file imports
+  uploadPDF: uploadPDF, // For PDF content uploads
 
   // Helper function to delete file
   deleteFile: async (filePath) => {
@@ -146,6 +203,22 @@ module.exports = {
       return `https://${storageConfig.s3.bucket}.s3.${storageConfig.s3.region}.amazonaws.com/${filename}`;
     } else {
       return `/uploads/${filename}`;
+    }
+  },
+
+  // Get PDF file URL (uses CONTENT_STORAGE_TYPE)
+  getPdfUrl: (filename) => {
+    const contentStorageType = getContentStorageType();
+    if (contentStorageType === 's3') {
+      // If custom endpoint is provided, use it
+      if (storageConfig.s3.endpoint) {
+        const endpoint = storageConfig.s3.endpoint.replace(/^https?:\/\//, '');
+        return `https://${endpoint}/${storageConfig.s3.bucket}/${filename}`;
+      }
+      // Default AWS S3 URL
+      return `https://${storageConfig.s3.bucket}.s3.${storageConfig.s3.region}.amazonaws.com/${filename}`;
+    } else {
+      return `/uploads/content/${filename}`;
     }
   }
 };

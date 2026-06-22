@@ -1,0 +1,871 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1>Pending Approvals</h1>
+      <a href="/admin/my-teams" class="btn btn-secondary">Back to My Teams</a>
+    </div>
+
+    <p class="subtitle">Review and approve documentation created by team members</p>
+
+    <% if (pendingSubjects.length > 0) { %>
+      <!-- Search, Filter, Sort Controls -->
+      <div class="controls-section">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search by title or description..." onkeyup="filterApprovals()">
+        </div>
+
+        <div class="filter-sort-group">
+          <select id="sortSelect" onchange="filterApprovals()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+
+          <select id="teamFilter" onchange="filterApprovals()">
+            <option value="">All Teams</option>
+            <% const uniqueTeams = [...new Set(pendingSubjects.map(s => s.team.name))]; %>
+            <% uniqueTeams.forEach(teamName => { %>
+              <option value="<%= teamName %>"><%= teamName %></option>
+            <% }); %>
+          </select>
+        </div>
+      </div>
+
+      <!-- Cards Container -->
+      <div class="approvals-container">
+        <div class="approvals-grid" id="approvalsGrid">
+          <% pendingSubjects.forEach(subject => { %>
+            <div class="approval-card"
+                 id="approval-<%= subject.id %>"
+                 data-title="<%= subject.title.toLowerCase() %>"
+                 data-description="<%= subject.description ? subject.description.toLowerCase() : '' %>"
+                 data-team="<%= subject.team.name %>"
+                 data-date="<%= new Date(subject.createdAt).getTime() %>">
+            <div class="ribbon">Pending</div>
+            <div class="approval-header">
+              <h3><%= subject.title %></h3>
+            </div>
+
+            <% if (subject.description) { %>
+              <div class="approval-description">
+                <p><%= subject.description %></p>
+              </div>
+            <% } %>
+
+            <div class="approval-meta">
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="meta-icon">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span><%= subject.team.name %></span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="meta-icon">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span><%= subject.author.username %></span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="meta-icon">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span><%= new Date(subject.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></span>
+              </div>
+            </div>
+
+            <div class="approval-actions">
+              <button type="button" class="btn-action btn-approve" onclick="handleApproval('<%= subject.id %>', 'approve')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Approve
+              </button>
+              <button type="button" class="btn-action btn-reject" onclick="handleApproval('<%= subject.id %>', 'reject')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Reject
+              </button>
+              <a href="/admin/subjects/edit/<%= subject.id %>" class="btn-action btn-view">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                View
+              </a>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-container">
+        <button class="pagination-btn" id="prevBtn" onclick="changePage(-1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Previous
+        </button>
+        <div class="pagination-info">
+          <span id="pageInfo">Page 1 of 1</span>
+        </div>
+        <button class="pagination-btn" id="nextBtn" onclick="changePage(1)">
+          Next
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <% } else { %>
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No Pending Approvals</h3>
+        <p>All team member submissions have been reviewed.</p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<!-- Custom Modal -->
+<div id="confirmModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">Confirm Action</h3>
+    </div>
+    <div class="modal-body">
+      <p id="modalMessage">Are you sure?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button id="modalConfirmBtn" class="btn btn-primary" onclick="confirmAction()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Success/Error Toast -->
+<div id="toast" class="toast"></div>
+
+<style>
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background-color: var(--bg-secondary);
+  margin: 15% auto;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 20px;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-body p {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 16px 24px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  display: none;
+  z-index: 1001;
+  min-width: 300px;
+  animation: slideInRight 0.3s;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast.success {
+  border-left: 4px solid #28a745;
+}
+
+.toast.error {
+  border-left: 4px solid #dc3545;
+}
+
+<style>
+.subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 30px;
+  font-size: 14px;
+}
+
+.controls-section {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  align-items: center;
+  border: none;
+  background: transparent;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 300px;
+  border: none;
+  outline: none;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 11px 16px 11px 42px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  outline: none;
+}
+
+.search-box input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.search-box input:focus {
+  outline: none;
+  background: transparent;
+  border-bottom: 1px solid var(--accent-color);
+  box-shadow: none;
+}
+
+.filter-sort-group {
+  display: flex;
+  gap: 12px;
+}
+
+.filter-sort-group select {
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filter-sort-group select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.approvals-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.approvals-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.approval-card {
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.approval-card.slide-out-left {
+  animation: slideOutLeft 0.3s ease-in forwards;
+}
+
+.approval-card.slide-out-right {
+  animation: slideOutRight 0.3s ease-in forwards;
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+
+.approval-card.hidden {
+  display: none;
+}
+
+.approval-card {
+  position: relative;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.approval-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  border-color: var(--accent-color);
+  transform: translateY(-4px);
+}
+
+.ribbon {
+  position: absolute;
+  top: 12px;
+  right: -32px;
+  background: var(--accent-color);
+  color: #000;
+  padding: 4px 40px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transform: rotate(45deg);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.approval-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.approval-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.approval-description {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--accent-color);
+  border-radius: 6px;
+  flex-grow: 1;
+}
+
+.approval-description p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.approval-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.meta-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+.approval-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-action svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-action:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.btn-approve:hover {
+  color: var(--accent-color);
+}
+
+.btn-reject:hover {
+  color: #ff6b6b;
+}
+
+.btn-view:hover {
+  color: var(--accent-color);
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pagination-info {
+  padding: 10px 20px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge-warning {
+  background-color: var(--accent-color);
+  color: #000;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.btn-success {
+  background-color: var(--accent-color);
+  color: #000;
+}
+
+.btn-success:hover {
+  background-color: var(--accent-hover);
+}
+
+.btn-danger {
+  background-color: var(--accent-color);
+  color: #000;
+}
+
+.btn-danger:hover {
+  background-color: var(--accent-hover);
+}
+</style>
+
+<script>
+let pendingAction = null;
+let pendingSubjectId = null;
+let currentPage = 1;
+const cardsPerPage = 2;
+let allCards = [];
+let filteredCards = [];
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  allCards = Array.from(document.querySelectorAll('.approval-card'));
+  filteredCards = [...allCards];
+  updateDisplay();
+});
+
+// Filter and sort approvals
+function filterApprovals() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const sortBy = document.getElementById('sortSelect').value;
+  const teamFilter = document.getElementById('teamFilter').value;
+
+  // Filter
+  filteredCards = allCards.filter(card => {
+    const title = card.dataset.title || '';
+    const description = card.dataset.description || '';
+    const team = card.dataset.team || '';
+
+    const matchesSearch = title.includes(searchTerm) || description.includes(searchTerm);
+    const matchesTeam = !teamFilter || team === teamFilter;
+
+    return matchesSearch && matchesTeam;
+  });
+
+  // Sort
+  filteredCards.sort((a, b) => {
+    const dateA = parseInt(a.dataset.date);
+    const dateB = parseInt(b.dataset.date);
+
+    if (sortBy === 'newest') {
+      return dateB - dateA;
+    } else {
+      return dateA - dateB;
+    }
+  });
+
+  currentPage = 1;
+  updateDisplay();
+}
+
+// Update card display and pagination
+function updateDisplay() {
+  const startIndex = (currentPage - 1) * cardsPerPage;
+  const endIndex = startIndex + cardsPerPage;
+  const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+
+  // Hide all cards first
+  allCards.forEach(card => card.classList.add('hidden'));
+
+  // Show cards for current page
+  filteredCards.slice(startIndex, endIndex).forEach(card => {
+    card.classList.remove('hidden');
+  });
+
+  // Update pagination info
+  document.getElementById('pageInfo').textContent =
+    filteredCards.length === 0 ? 'No results' : `Page ${currentPage} of ${totalPages}`;
+
+  // Update button states
+  document.getElementById('prevBtn').disabled = currentPage === 1;
+  document.getElementById('nextBtn').disabled = currentPage >= totalPages || filteredCards.length === 0;
+}
+
+// Change page with animation
+function changePage(direction) {
+  const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+  const newPage = currentPage + direction;
+
+  if (newPage >= 1 && newPage <= totalPages) {
+    // Get currently visible cards
+    const visibleCards = filteredCards.filter(card => !card.classList.contains('hidden'));
+
+    // Add slide-out animation
+    const slideOutClass = direction > 0 ? 'slide-out-left' : 'slide-out-right';
+    visibleCards.forEach(card => {
+      card.classList.add(slideOutClass);
+    });
+
+    // Wait for slide-out animation to complete, then update page
+    setTimeout(() => {
+      visibleCards.forEach(card => {
+        card.classList.remove(slideOutClass);
+      });
+
+      currentPage = newPage;
+      updateDisplay();
+
+      // Scroll to top of cards
+      document.getElementById('approvalsGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  }
+}
+
+function handleApproval(subjectId, action) {
+  pendingSubjectId = subjectId;
+  pendingAction = action;
+
+  const modal = document.getElementById('confirmModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalMessage = document.getElementById('modalMessage');
+  const confirmBtn = document.getElementById('modalConfirmBtn');
+
+  if (action === 'approve') {
+    modalTitle.textContent = '✓ Approve & Publish';
+    modalMessage.textContent = 'Are you sure you want to approve and publish this documentation? It will be visible to all team members.';
+    confirmBtn.textContent = 'Approve & Publish';
+    confirmBtn.className = 'btn btn-primary';
+  } else {
+    modalTitle.textContent = '✗ Reject Documentation';
+    modalMessage.textContent = 'Are you sure you want to reject this documentation? This action will permanently delete it.';
+    confirmBtn.textContent = 'Reject & Delete';
+    confirmBtn.className = 'btn btn-primary';
+  }
+
+  modal.style.display = 'block';
+}
+
+function closeModal() {
+  const modal = document.getElementById('confirmModal');
+  modal.style.display = 'none';
+  pendingAction = null;
+  pendingSubjectId = null;
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('confirmModal');
+  if (event.target === modal) {
+    closeModal();
+  }
+}
+
+async function confirmAction() {
+  if (!pendingAction || !pendingSubjectId) return;
+
+  const modal = document.getElementById('confirmModal');
+  modal.style.display = 'none';
+
+  try {
+    const response = await fetch(`/admin/approvals/${pendingSubjectId}/handle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action: pendingAction })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Remove the card from the list with animation
+      const card = document.getElementById(`approval-${pendingSubjectId}`);
+      if (card) {
+        card.style.transition = 'all 0.3s';
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(20px)';
+        setTimeout(() => {
+          card.remove();
+
+          // Update arrays and display
+          allCards = Array.from(document.querySelectorAll('.approval-card'));
+          filteredCards = filteredCards.filter(c => c.id !== `approval-${pendingSubjectId}`);
+
+          // Check if there are any cards left
+          if (allCards.length === 0) {
+            location.reload();
+          } else {
+            // Adjust page if current page is empty
+            const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+            if (currentPage > totalPages && currentPage > 1) {
+              currentPage = totalPages;
+            }
+            updateDisplay();
+          }
+        }, 300);
+      }
+
+      showToast(data.message, 'success');
+    } else {
+      showToast(data.message || 'Failed to process approval', 'error');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('Failed to process approval', 'error');
+  }
+
+  pendingAction = null;
+  pendingSubjectId = null;
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = `toast ${type}`;
+  toast.style.display = 'block';
+
+  setTimeout(() => {
+    toast.style.display = 'none';
+  }, 4000);
+}
+</script>
+
+<%- include('../../partials/footer') %>

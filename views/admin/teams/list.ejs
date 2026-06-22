@@ -1,0 +1,80 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1>Manage Teams</h1>
+      <div>
+        <a href="/admin/teams/requests" class="btn btn-secondary">View Join Requests</a>
+        <a href="/admin/teams/create" class="btn btn-primary">Create New Team</a>
+      </div>
+    </div>
+
+    <% if (teams.length > 0) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Team Name</th>
+            <th>Members</th>
+            <th>Team Admins</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% teams.forEach(team => { %>
+            <tr>
+              <td><strong><%= team.name %></strong></td>
+              <td><%= team.members.length %> members</td>
+              <td>
+                <% const admins = team.members.filter(m => m.role === 'admin'); %>
+                <% if (admins.length > 0) { %>
+                  <%= admins.map(a => a.user.username).join(', ') %>
+                <% } else { %>
+                  <em>No admins</em>
+                <% } %>
+              </td>
+              <td>
+                <span class="badge <%= team.isActive ? 'badge-success' : 'badge-danger' %>">
+                  <%= team.isActive ? 'Active' : 'Inactive' %>
+                </span>
+              </td>
+              <td><%= new Date(team.createdAt).toLocaleDateString() %></td>
+              <td>
+                <a href="/admin/teams/edit/<%= team.id %>" class="btn btn-secondary">Edit</a>
+                <form action="/admin/teams/delete/<%= team.id %>" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this team? All team memberships will be removed.');">
+                  <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <p>No teams found. <a href="/admin/teams/create">Create one now</a></p>
+    <% } %>
+  </div>
+</div>
+
+<style>
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+.badge-success {
+  background-color: #28a745;
+  color: white;
+}
+.badge-danger {
+  background-color: #dc3545;
+  color: white;
+}
+</style>
+
+<%- include('../../partials/footer') %>

@@ -1,0 +1,156 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1>My Teams</h1>
+      <a href="/admin/pending-approvals" class="btn btn-secondary">Pending Approvals</a>
+    </div>
+
+    <% if (teams.length > 0) { %>
+      <div class="teams-grid">
+        <% teams.forEach(team => { %>
+          <div class="team-card">
+            <div class="team-card-header">
+              <h2><%= team.name %></h2>
+              <span class="badge <%= team.isActive ? 'badge-success' : 'badge-danger' %>">
+                <%= team.isActive ? 'Active' : 'Inactive' %>
+              </span>
+            </div>
+
+            <% if (team.description) { %>
+              <p class="team-description"><%= team.description %></p>
+            <% } %>
+
+            <div class="team-stats">
+              <div class="stat-item">
+                <strong><%= team.members.length %></strong>
+                <span>Members</span>
+              </div>
+              <div class="stat-item">
+                <% const admins = team.members.filter(m => m.role === 'admin'); %>
+                <strong><%= admins.length %></strong>
+                <span>Admins</span>
+              </div>
+            </div>
+
+            <div class="team-actions">
+              <a href="/admin/my-teams/manage/<%= team.id %>" class="btn btn-primary">
+                Manage Team
+              </a>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <div class="empty-state">
+        <p>You are not a team admin of any teams yet.</p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<style>
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.team-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: all 0.3s;
+}
+
+.team-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+}
+
+.team-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 15px;
+}
+
+.team-card-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.team-description {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.team-stats {
+  display: flex;
+  gap: 30px;
+  padding: 15px 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-item strong {
+  font-size: 24px;
+  color: var(--accent-color);
+}
+
+.stat-item span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.team-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge-success {
+  background-color: var(--accent-color);
+  color: #000;
+}
+
+.badge-danger {
+  background-color: var(--accent-color);
+  color: #000;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  font-size: 16px;
+}
+</style>
+
+<%- include('../../partials/footer') %>

@@ -32,6 +32,19 @@ module.exports = (sequelize) => {
         key: 'id'
       }
     },
+    teamId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'teams',
+        key: 'id'
+      }
+    },
+    visibility: {
+      type: DataTypes.ENUM('public', 'team'),
+      defaultValue: 'public',
+      allowNull: false
+    },
     displayOrder: {
       type: DataTypes.INTEGER,
       defaultValue: 0
@@ -39,6 +52,23 @@ module.exports = (sequelize) => {
     isPublished: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
+    },
+    requiresApproval: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      comment: 'For team member created content'
+    },
+    approvedBy: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
+    },
+    approvedAt: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
   }, {
     timestamps: true,
@@ -47,6 +77,8 @@ module.exports = (sequelize) => {
 
   Subject.associate = (models) => {
     Subject.belongsTo(models.User, { foreignKey: 'authorId', as: 'author' });
+    Subject.belongsTo(models.Team, { foreignKey: 'teamId', as: 'team' });
+    Subject.belongsTo(models.User, { foreignKey: 'approvedBy', as: 'approver' });
     Subject.hasMany(models.Topic, { foreignKey: 'subjectId', as: 'topics' });
   };
 

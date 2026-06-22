@@ -1,8 +1,12 @@
-const { Subject, Topic, Concept, User } = require('../models/postgres');
+const { Subject, Topic, Concept, User, Team, TeamMember } = require('../models/postgres');
 const Content = require('../models/mongo/Content');
 const slugify = require('../utils/slugify');
 const { marked } = require('marked');
 const fs = require('fs').promises;
+const { Op } = require('sequelize');
+const { uploadImage, uploadPDF } = require('../services/storageService');
+const path = require('path');
+const aiService = require('../services/aiService');
 
 // Helper function to normalize file path
 const normalizeFilePath = (filePath) => {
@@ -33,8 +37,33 @@ exports.dashboard = async (req, res) => {
 // Subjects
 exports.listSubjects = async (req, res) => {
   try {
+    let whereClause = {
+      isPublished: true  // Only show published subjects
+    };
+
+    // If user is team admin (not super admin), filter by their teams
+    if (req.isTeamAdmin && !req.isGlobalAdmin) {
+      const userTeams = await TeamMember.findAll({
+        where: { userId: req.session.userId, role: 'admin' },
+        attributes: ['teamId']
+      });
+      const teamIds = userTeams.map(tm => tm.teamId);
+
+      whereClause = {
+        isPublished: true,  // Only show published subjects
+        [Op.or]: [
+          { visibility: 'public' },
+          { teamId: { [Op.in]: teamIds } }
+        ]
+      };
+    }
+
     const subjects = await Subject.findAll({
-      include: [{ model: User, as: 'author', attributes: ['username'] }],
+      where: whereClause,
+      include: [
+        { model: User, as: 'author', attributes: ['username'] },
+        { model: Team, as: 'team', attributes: ['name'], required: false }
+      ],
       order: [['displayOrder', 'ASC'], ['createdAt', 'DESC']]
     });
 
@@ -49,15 +78,58 @@ exports.listSubjects = async (req, res) => {
   }
 };
 
-exports.createSubjectForm = (req, res) => {
-  res.render('admin/subjects/create', { title: 'Create Subject' });
+exports.createSubjectForm = async (req, res) => {
+  try {
+    // Get user's teams if they're a team admin
+    let userTeams = [];
+    if (req.isTeamAdmin && !req.isGlobalAdmin) {
+      const memberships = await TeamMember.findAll({
+        where: { userId: req.session.userId, role: 'admin' },
+        include: [{ model: Team, as: 'team', attributes: ['id', 'name'] }]
+      });
+      userTeams = memberships.map(m => m.team);
+    }
+
+    res.render('admin/subjects/create', {
+      title: 'Create Subject',
+      userTeams,
+      isGlobalAdmin: req.isGlobalAdmin || false
+    });
+  } catch (error) {
+    console.error('Create subject form error:', error);
+    req.flash('error', 'Failed to load form');
+    res.redirect('/admin/subjects');
+  }
 };
 
 exports.createSubject = async (req, res) => {
   try {
-    const { title, description, displayOrder, isPublished } = req.body;
+    const { title, description, displayOrder, isPublished, visibility, teamId } = req.body;
     const slug = slugify(title);
     const coverImage = req.file ? normalizeFilePath(req.file.path) : null;
+
+    let requiresApproval = false;
+
+    // Check if user is team member (requires approval) or team admin (no approval)
+    if (visibility === 'team' && teamId) {
+      const membership = await TeamMember.findOne({
+        where: {
+          userId: req.session.userId,
+          teamId: teamId
+        }
+      });
+
+      if (membership) {
+        // Team members need approval from team admin
+        if (membership.role === 'member') {
+          requiresApproval = true;
+        }
+      } else if (!req.isGlobalAdmin) {
+        // Not a member and not super admin
+        req.flash('error', 'You can only create documentation for teams you belong to');
+        return res.redirect('/admin/subjects/create');
+      }
+    }
 
     await Subject.create({
       title,
@@ -65,11 +137,19 @@ exports.createSubject = async (req, res) => {
       description,
       coverImage,
       authorId: req.session.userId,
+      teamId: visibility === 'team' ? teamId : null,
+      visibility: visibility || 'public',
       displayOrder: displayOrder || 0,
-      isPublished: isPublished === 'on'
+      isPublished: requiresApproval ? false : (isPublished === 'on'),
+      requiresApproval: requiresApproval
     });
 
-    req.flash('success', 'Subject created successfully');
+    if (requiresApproval) {
+      req.flash('success', 'Subject created and submitted for team admin approval');
+    } else {
+      req.flash('success', 'Subject created successfully');
+    }
+
     res.redirect('/admin/subjects');
   } catch (error) {
     console.error('Create subject error:', error);
@@ -96,12 +176,46 @@ exports.editSubjectForm = async (req, res) => {
 
 exports.updateSubject = async (req, res) => {
   try {
-    const { title, description, displayOrder, isPublished } = req.body;
+    const { title, description, displayOrder, isPublished, visibility, teamId } = req.body;
     const subject = await Subject.findByPk(req.params.id);
 
     if (!subject) {
       req.flash('error', 'Subject not found');
       return res.redirect('/admin/subjects');
+    }
+
+    // Validate team admin can only edit their team's content
+    if (req.isTeamAdmin && !req.isGlobalAdmin) {
+      if (subject.teamId) {
+        const canManage = await TeamMember.findOne({
+          where: {
+            userId: req.session.userId,
+            teamId: subject.teamId,
+            role: 'admin'
+          }
+        });
+
+        if (!canManage) {
+          req.flash('error', 'You can only edit documentation for teams you manage');
+          return res.redirect('/admin/subjects');
+        }
+      }
+
+      // Also validate new team if changing
+      if (visibility === 'team' && teamId && teamId !== subject.teamId) {
+        const canManageNewTeam = await TeamMember.findOne({
+          where: {
+            userId: req.session.userId,
+            teamId: teamId,
+            role: 'admin'
+          }
+        });
+
+        if (!canManageNewTeam) {
+          req.flash('error', 'You can only assign documentation to teams you manage');
+          return res.redirect(`/admin/subjects/edit/${req.params.id}`);
+        }
+      }
     }
 
     const slug = slugify(title);
@@ -112,6 +226,8 @@ exports.updateSubject = async (req, res) => {
       slug,
       description,
       coverImage,
+      teamId: visibility === 'team' ? teamId : null,
+      visibility: visibility || 'public',
       displayOrder: displayOrder || 0,
       isPublished: isPublished === 'on'
     });
@@ -131,6 +247,28 @@ exports.deleteSubject = async (req, res) => {
     if (!subject) {
       req.flash('error', 'Subject not found');
       return res.redirect('/admin/subjects');
+    }
+
+    // Validate team admin can only delete their team's content
+    if (req.isTeamAdmin && !req.isGlobalAdmin) {
+      if (subject.teamId) {
+        const canManage = await TeamMember.findOne({
+          where: {
+            userId: req.session.userId,
+            teamId: subject.teamId,
+            role: 'admin'
+          }
+        });
+
+        if (!canManage) {
+          req.flash('error', 'You can only delete documentation for teams you manage');
+          return res.redirect('/admin/subjects');
+        }
+      } else {
+        // Team admins cannot delete public content
+        req.flash('error', 'You cannot delete public documentation');
+        return res.redirect('/admin/subjects');
+      }
     }
 
     await subject.destroy();
@@ -165,7 +303,8 @@ exports.listTopics = async (req, res) => {
 exports.createTopicForm = async (req, res) => {
   try {
     const subjects = await Subject.findAll({ where: { isPublished: true } });
-    res.render('admin/topics/create', { title: 'Create Topic', subjects });
+    const selectedSubjectId = req.query.subjectId || null;
+    res.render('admin/topics/create', { title: 'Create Topic', subjects, selectedSubjectId });
   } catch (error) {
     console.error('Create topic form error:', error);
     req.flash('error', 'Failed to load form');
@@ -269,18 +408,29 @@ exports.deleteTopic = async (req, res) => {
 // Concepts
 exports.listConcepts = async (req, res) => {
   try {
-    const concepts = await Concept.findAll({
+    // Fetch all published subjects with their topics and concepts
+    const subjects = await Subject.findAll({
+      where: { isPublished: true },
       include: [
         {
           model: Topic,
-          as: 'topic',
-          attributes: ['title'],
-          include: [{ model: Subject, as: 'subject', attributes: ['title'] }]
+          as: 'topics',
+          include: [
+            {
+              model: Concept,
+              as: 'concepts',
+              order: [['displayOrder', 'ASC'], ['createdAt', 'DESC']]
+            }
+          ]
         }
       ],
-      order: [['displayOrder', 'ASC'], ['createdAt', 'DESC']]
+      order: [
+        ['displayOrder', 'ASC'],
+        [{ model: Topic, as: 'topics' }, 'displayOrder', 'ASC']
+      ]
     });
 
+    // Fetch all topics for the move modal
     const topics = await Topic.findAll({
       where: { isPublished: true },
       include: [{ model: Subject, as: 'subject', attributes: ['title'] }],
@@ -289,7 +439,7 @@ exports.listConcepts = async (req, res) => {
 
     res.render('admin/concepts/list', {
       title: 'Manage Concepts',
-      concepts,
+      subjects,
       topics
     });
   } catch (error) {
@@ -316,13 +466,25 @@ exports.createConceptForm = async (req, res) => {
 
 exports.createConcept = async (req, res) => {
   try {
-    const { title, topicId, displayOrder, isPublished, content } = req.body;
+    const { title, topicId, displayOrder, isPublished, content, contentType } = req.body;
     const slug = slugify(title);
-    const coverImage = req.file ? normalizeFilePath(req.file.path) : null;
+
+    // Handle coverImage from req.files
+    let coverImage = null;
+    if (req.files && req.files.coverImage && req.files.coverImage[0]) {
+      // Process cover image using uploadImage middleware
+      const coverFile = req.files.coverImage[0];
+      const uploadDir = process.env.STORAGE_TYPE === 's3' ? null : 'uploads';
+
+      if (!uploadDir || process.env.STORAGE_TYPE !== 's3') {
+        const uploadPath = path.join('uploads', `coverImage-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(coverFile.originalname)}`);
+        await fs.writeFile(uploadPath, coverFile.buffer);
+        coverImage = normalizeFilePath(uploadPath);
+      }
+    }
 
     console.log('=== CREATE CONCEPT START ===');
-    console.log('Content length from form:', content ? content.length : 0);
-    console.log('Content preview:', content ? content.substring(0, 100) : 'EMPTY');
+    console.log('Content Type:', contentType);
 
     // Create concept in PostgreSQL
     const concept = await Concept.create({
@@ -337,38 +499,89 @@ exports.createConcept = async (req, res) => {
 
     console.log('✅ Concept created in PostgreSQL, ID:', concept.id);
 
-    // Create content in MongoDB
-    const mongoContent = await Content.create({
-      conceptId: concept.id,
-      htmlContent: content || '',
-      rawContent: content || '',
-      contentType: 'quill',
-      createdBy: req.session.userId,
-      lastModifiedBy: req.session.userId,
-      revisions: []
-    });
+    let mongoContent;
+
+    // Check if PDF or Editor content
+    if (contentType === 'pdf' && req.files && req.files.pdfFile && req.files.pdfFile[0]) {
+      // Handle PDF upload
+      const pdfFile = req.files.pdfFile[0];
+      const contentStorageType = process.env.CONTENT_STORAGE_TYPE || process.env.STORAGE_TYPE || 'local';
+
+      let pdfUrl, pdfFilename;
+
+      if (contentStorageType === 's3') {
+        // TODO: Upload to S3 (implement later)
+        throw new Error('S3 upload for PDF not yet implemented');
+      } else {
+        // Save to local storage: uploads/content/
+        const contentDir = 'uploads/content';
+        await fs.mkdir(contentDir, { recursive: true });
+
+        pdfFilename = `pdf-${Date.now()}-${Math.round(Math.random() * 1E9)}.pdf`;
+        const pdfPath = path.join(contentDir, pdfFilename);
+
+        await fs.writeFile(pdfPath, pdfFile.buffer);
+        pdfUrl = `/uploads/content/${pdfFilename}`;
+      }
+
+      console.log('✅ PDF saved:', pdfUrl);
+
+      // Create content in MongoDB with PDF type
+      mongoContent = await Content.create({
+        conceptId: concept.id,
+        htmlContent: '', // Empty for PDF
+        rawContent: '', // Empty for PDF
+        contentType: 'pdf',
+        pdfUrl: pdfUrl,
+        pdfFilename: pdfFilename,
+        createdBy: req.session.userId,
+        lastModifiedBy: req.session.userId,
+        revisions: []
+      });
+    } else {
+      // Handle regular editor content
+      console.log('Content length from form:', content ? content.length : 0);
+      console.log('Content preview:', content ? content.substring(0, 100) : 'EMPTY');
+
+      mongoContent = await Content.create({
+        conceptId: concept.id,
+        htmlContent: content || '',
+        rawContent: content || '',
+        contentType: 'quill',
+        createdBy: req.session.userId,
+        lastModifiedBy: req.session.userId,
+        revisions: []
+      });
+    }
 
     console.log('✅ Content saved to MongoDB, _id:', mongoContent._id.toString());
-    console.log('Content in MongoDB - htmlContent length:', mongoContent.htmlContent.length);
 
     // Update concept with content ID
-    const updatedConcept = await concept.update({ contentId: mongoContent._id.toString() });
+    await concept.update({ contentId: mongoContent._id.toString() });
 
-    console.log('✅ Concept updated with contentId:', updatedConcept.contentId);
+    console.log('✅ Concept updated with contentId');
     console.log('=== CREATE CONCEPT END ===');
 
     req.flash('success', 'Concept created successfully');
     res.redirect('/admin/concepts');
   } catch (error) {
     console.error('Create concept error:', error);
-    req.flash('error', 'Failed to create concept');
+    req.flash('error', 'Failed to create concept: ' + error.message);
     res.redirect('/admin/concepts/create');
   }
 };
 
 exports.editConceptForm = async (req, res) => {
   try {
-    const concept = await Concept.findByPk(req.params.id);
+    const concept = await Concept.findByPk(req.params.id, {
+      include: [
+        {
+          model: Topic,
+          as: 'topic',
+          include: [{ model: Subject, as: 'subject' }]
+        }
+      ]
+    });
     const topics = await Topic.findAll({
       where: { isPublished: true },
       include: [{ model: Subject, as: 'subject', attributes: ['title'] }]
@@ -405,7 +618,7 @@ exports.editConceptForm = async (req, res) => {
       title: 'Edit Concept',
       concept,
       topics,
-      content: contentHtml
+      content: content || { htmlContent: '', contentType: 'quill' }
     });
   } catch (error) {
     console.error('Edit concept form error:', error);
@@ -416,7 +629,7 @@ exports.editConceptForm = async (req, res) => {
 
 exports.updateConcept = async (req, res) => {
   try {
-    const { title, topicId, displayOrder, isPublished, content } = req.body;
+    const { title, topicId, displayOrder, isPublished, content, contentType } = req.body;
     const concept = await Concept.findByPk(req.params.id);
 
     if (!concept) {
@@ -425,7 +638,15 @@ exports.updateConcept = async (req, res) => {
     }
 
     const slug = slugify(title);
-    const coverImage = req.file ? normalizeFilePath(req.file.path) : concept.coverImage;
+
+    // Handle coverImage from req.files
+    let coverImage = concept.coverImage;
+    if (req.files && req.files.coverImage && req.files.coverImage[0]) {
+      const coverFile = req.files.coverImage[0];
+      const uploadPath = path.join('uploads', `coverImage-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(coverFile.originalname)}`);
+      await fs.writeFile(uploadPath, coverFile.buffer);
+      coverImage = normalizeFilePath(uploadPath);
+    }
 
     // Update concept
     await concept.update({
@@ -442,18 +663,61 @@ exports.updateConcept = async (req, res) => {
     if (concept.contentId) {
       const existingContent = await Content.findOne({ conceptId: concept.id });
       if (existingContent) {
-        // Add old content to revisions
-        existingContent.revisions.push({
-          content: existingContent.rawContent,
-          revisedBy: req.session.userId,
-          revisedAt: new Date()
-        });
+        // Check if switching content types
+        if (contentType === 'pdf' && req.files && req.files.pdfFile && req.files.pdfFile[0]) {
+          // Switching to PDF or updating PDF
+          const pdfFile = req.files.pdfFile[0];
+          const contentStorageType = process.env.CONTENT_STORAGE_TYPE || process.env.STORAGE_TYPE || 'local';
 
-        existingContent.htmlContent = content || '';
-        existingContent.rawContent = content || '';
-        existingContent.lastModifiedBy = req.session.userId;
+          let pdfUrl, pdfFilename;
 
-        // Ensure createdBy exists (for documents created before this field was required)
+          if (contentStorageType === 's3') {
+            throw new Error('S3 upload for PDF not yet implemented');
+          } else {
+            const contentDir = 'uploads/content';
+            await fs.mkdir(contentDir, { recursive: true });
+
+            pdfFilename = `pdf-${Date.now()}-${Math.round(Math.random() * 1E9)}.pdf`;
+            const pdfPath = path.join(contentDir, pdfFilename);
+
+            await fs.writeFile(pdfPath, pdfFile.buffer);
+            pdfUrl = `/uploads/content/${pdfFilename}`;
+          }
+
+          // Add old content to revisions if changing from editor to PDF
+          if (existingContent.contentType !== 'pdf') {
+            existingContent.revisions.push({
+              content: existingContent.rawContent,
+              revisedBy: req.session.userId,
+              revisedAt: new Date()
+            });
+          }
+
+          existingContent.htmlContent = '';
+          existingContent.rawContent = '';
+          existingContent.contentType = 'pdf';
+          existingContent.pdfUrl = pdfUrl;
+          existingContent.pdfFilename = pdfFilename;
+          existingContent.lastModifiedBy = req.session.userId;
+
+        } else if (contentType === 'editor' || !contentType) {
+          // Using editor content
+          // Add old content to revisions
+          existingContent.revisions.push({
+            content: existingContent.rawContent,
+            revisedBy: req.session.userId,
+            revisedAt: new Date()
+          });
+
+          existingContent.htmlContent = content || '';
+          existingContent.rawContent = content || '';
+          existingContent.contentType = 'quill';
+          existingContent.pdfUrl = null;
+          existingContent.pdfFilename = null;
+          existingContent.lastModifiedBy = req.session.userId;
+        }
+
+        // Ensure createdBy exists
         if (!existingContent.createdBy) {
           existingContent.createdBy = req.session.userId;
         }
@@ -466,7 +730,7 @@ exports.updateConcept = async (req, res) => {
     res.redirect('/admin/concepts');
   } catch (error) {
     console.error('Update concept error:', error);
-    req.flash('error', 'Failed to update concept');
+    req.flash('error', 'Failed to update concept: ' + error.message);
     res.redirect(`/admin/concepts/edit/${req.params.id}`);
   }
 };
@@ -575,6 +839,54 @@ exports.uploadFile = async (req, res) => {
     res.status(500).json({
       error: error.message || 'Failed to process file',
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};
+
+// AI-powered content improvement
+exports.aiImprove = async (req, res) => {
+  try {
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ success: false, error: 'No content provided' });
+    }
+
+    const improvedContent = await aiService.improveContent(content);
+
+    res.json({
+      success: true,
+      improvedContent: improvedContent
+    });
+  } catch (error) {
+    console.error('AI improve error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to improve content with AI'
+    });
+  }
+};
+
+// AI-powered content summarization
+exports.aiSummarize = async (req, res) => {
+  try {
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ success: false, error: 'No content provided' });
+    }
+
+    const summary = await aiService.summarizeContent(content);
+
+    res.json({
+      success: true,
+      summary: summary
+    });
+  } catch (error) {
+    console.error('AI summarize error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to summarize content'
     });
   }
 };

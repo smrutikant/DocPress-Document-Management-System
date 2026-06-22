@@ -51,5 +51,10 @@ module.exports = (sequelize) => {
     tableName: 'users'
   });
 
+  User.associate = (models) => {
+    User.hasMany(models.TeamMember, { foreignKey: 'userId', as: 'teamMemberships' });
+    User.hasMany(models.TeamRequest, { foreignKey: 'userId', as: 'teamRequests' });
+  };
+
   return User;
 };

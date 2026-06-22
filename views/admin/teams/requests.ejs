@@ -1,0 +1,85 @@
+<%- include('../../partials/header') %>
+
+<div class="admin-layout">
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="admin-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1>Team Join Requests</h1>
+      <a href="/admin/teams" class="btn btn-secondary">Back to Teams</a>
+    </div>
+
+    <% if (requests.length > 0) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Team</th>
+            <th>Message</th>
+            <th>Requested</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% requests.forEach(request => { %>
+            <tr id="request-<%= request.id %>">
+              <td><strong><%= request.user.username %></strong><br><small><%= request.user.email %></small></td>
+              <td><%= request.team.name %></td>
+              <td><%= request.requestMessage || '<em>No message</em>' %></td>
+              <td><%= new Date(request.createdAt).toLocaleDateString() %></td>
+              <td>
+                <button type="button" class="btn btn-primary" onclick="handleRequest('<%= request.id %>', 'approve')">Approve</button>
+                <button type="button" class="btn btn-danger" onclick="handleRequest('<%= request.id %>', 'reject')">Reject</button>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <p>No pending join requests.</p>
+    <% } %>
+  </div>
+</div>
+
+<script>
+async function handleRequest(requestId, action) {
+  const confirmMsg = action === 'approve'
+    ? 'Approve this join request?'
+    : 'Reject this join request?';
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const response = await fetch(`/admin/teams/requests/${requestId}/handle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Remove the row from the table
+      const row = document.getElementById(`request-${requestId}`);
+      if (row) {
+        row.remove();
+      }
+
+      // Check if table is empty
+      const tbody = document.querySelector('tbody');
+      if (tbody && tbody.children.length === 0) {
+        location.reload();
+      }
+    } else {
+      alert(data.message || 'Failed to process request');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to process request');
+  }
+}
+</script>
+
+<%- include('../../partials/footer') %>

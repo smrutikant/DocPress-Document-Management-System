@@ -28,6 +28,29 @@
       </div>
 
       <div class="form-group">
+        <label for="visibility">Visibility</label>
+        <select id="visibility" name="visibility" onchange="toggleTeamSelect()">
+          <option value="public">Public</option>
+          <option value="team">Team Only</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="teamSelectGroup" style="display: none;">
+        <label for="teamId">Select Team *</label>
+        <select id="teamId" name="teamId">
+          <option value="">-- Select Team --</option>
+          <% if (locals.isGlobalAdmin) { %>
+            <!-- Super admin: will load all teams via API -->
+          <% } else if (locals.userTeams && locals.userTeams.length > 0) { %>
+            <!-- Team admin: show only their teams -->
+            <% userTeams.forEach(team => { %>
+              <option value="<%= team.id %>"><%= team.name %></option>
+            <% }); %>
+          <% } %>
+        </select>
+      </div>
+
+      <div class="form-group">
         <label for="displayOrder">Display Order</label>
         <input type="number" id="displayOrder" name="displayOrder" value="0">
       </div>
@@ -63,6 +86,44 @@ function previewCoverImage(input) {
   } else {
     preview.style.display = 'none';
   }
+}
+
+// Toggle team selection
+function toggleTeamSelect() {
+  const visibility = document.getElementById('visibility').value;
+  const teamSelectGroup = document.getElementById('teamSelectGroup');
+  const teamIdSelect = document.getElementById('teamId');
+
+  if (visibility === 'team') {
+    teamSelectGroup.style.display = 'block';
+    teamIdSelect.required = true;
+    loadTeams();
+  } else {
+    teamSelectGroup.style.display = 'none';
+    teamIdSelect.required = false;
+  }
+}
+
+// Load teams (only for super admin)
+async function loadTeams() {
+  <% if (locals.isGlobalAdmin) { %>
+  try {
+    const response = await fetch('/api/teams');
+    const teams = await response.json();
+    const select = document.getElementById('teamId');
+
+    select.innerHTML = '<option value="">-- Select Team --</option>';
+    teams.forEach(team => {
+      const option = document.createElement('option');
+      option.value = team.id;
+      option.textContent = team.name;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Failed to load teams:', error);
+  }
+  <% } %>
+  // Team admins already have their teams pre-loaded in the HTML
 }
 </script>
 
